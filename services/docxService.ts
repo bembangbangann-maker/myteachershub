@@ -1648,21 +1648,35 @@ class DocxService {
     }
 
     public async generateExamDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
-        const docChildren: (Paragraph | Table)[] = [];
+        // This function will now orchestrate the generation of two separate documents.
+        const toastId = toast.loading('Generating examination documents...');
+        try {
+            // Generate and download TOS first
+            await this._generateAndDownloadTosDocx(exam, settings);
+            
+            // Then generate and download the exam questions
+            await this._generateAndDownloadExamQuestionsDocx(exam, settings);
+
+            toast.success('Examination and TOS documents downloaded!', { id: toastId });
+        } catch (error) {
+            console.error("Error generating exam documents:", error);
+            const message = error instanceof Error ? error.message : "An unknown error occurred.";
+            toast.error(`Failed to generate documents: ${message}`, { id: toastId });
+        }
+    }
+
+    private async _generateAndDownloadTosDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
         const font = "Times New Roman";
         const p = (options: IParagraphOptions = {}) => new Paragraph(options);
-        const text = (txt: string, opts: IRunOptions = {}) => new TextRun({ text: txt, font, size: 22, ...opts });
+        const text = (txt: string, opts: IRunOptions = {}) => new TextRun({ text: txt, font, size: 20, ...opts }); // 10pt
         const boldText = (txt: string, opts: IRunOptions = {}) => text(txt, { bold: true, ...opts });
 
-        // Header
-        docChildren.push(p({ children: [boldText(settings.schoolName.toUpperCase())], alignment: AlignmentType.CENTER }));
-        docChildren.push(p({ children: [boldText(exam.title.toUpperCase())], alignment: AlignmentType.CENTER }));
-        docChildren.push(p({ children: [boldText(`${exam.subject.toUpperCase()} ${exam.gradeLevel}`)], alignment: AlignmentType.CENTER }));
-        docChildren.push(p({}));
-
-        // TOS
-        docChildren.push(p({ children: [boldText("TABLE OF SPECIFICATIONS", { underline: { type: UnderlineType.SINGLE } })], alignment: AlignmentType.CENTER }));
-        docChildren.push(p({}));
+        const children: (Paragraph | Table)[] = [];
+        
+        children.push(p({ children: [boldText(settings.schoolName.toUpperCase(), { size: 24 })], alignment: AlignmentType.CENTER }));
+        children.push(p({ children: [boldText("TABLE OF SPECIFICATIONS", { size: 22, underline: { type: UnderlineType.SINGLE } })], alignment: AlignmentType.CENTER }));
+        children.push(p({ children: [boldText(`${exam.subject.toUpperCase()} ${exam.gradeLevel}`, { size: 22 })], alignment: AlignmentType.CENTER }));
+        children.push(p({}));
 
         const tosHeader1 = new TableRow({
             tableHeader: true,
@@ -1686,17 +1700,17 @@ class DocxService {
 
         const tosRows = exam.tableOfSpecifications.map(item => new TableRow({
             children: [
-                new TableCell({ children: [p({ children: [text(item.objective)] })] }),
-                new TableCell({ children: [p({ children: [text(String(item.daysTaught))], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(item.percentage)], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(String(item.numItems))], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(item.remembering)], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(item.understanding)], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(item.applying)], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(item.analyzing)], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(item.evaluating)], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(item.creating)], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [text(item.itemPlacement)], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.objective)], alignment: AlignmentType.LEFT })] }),
+                new TableCell({ children: [p({ children: [text(String(item.daysTaught))] })] }),
+                new TableCell({ children: [p({ children: [text(item.percentage)] })] }),
+                new TableCell({ children: [p({ children: [text(String(item.numItems))] })] }),
+                new TableCell({ children: [p({ children: [text(item.remembering)] })] }),
+                new TableCell({ children: [p({ children: [text(item.understanding)] })] }),
+                new TableCell({ children: [p({ children: [text(item.applying)] })] }),
+                new TableCell({ children: [p({ children: [text(item.analyzing)] })] }),
+                new TableCell({ children: [p({ children: [text(item.evaluating)] })] }),
+                new TableCell({ children: [p({ children: [text(item.creating)] })] }),
+                new TableCell({ children: [p({ children: [text(item.itemPlacement)] })] }),
             ],
         }));
 
@@ -1706,38 +1720,82 @@ class DocxService {
         const tosFooter = new TableRow({
             children: [
                 new TableCell({ children: [p({ children: [boldText("TOTAL")] })] }),
-                new TableCell({ children: [p({ children: [boldText(String(totalDays))], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [boldText("100%")], alignment: AlignmentType.CENTER })] }),
-                new TableCell({ children: [p({ children: [boldText(String(totalItems))], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [boldText(String(totalDays))] })] }),
+                new TableCell({ children: [p({ children: [boldText("100%")] })] }),
+                new TableCell({ children: [p({ children: [boldText(String(totalItems))] })] }),
                 new TableCell({ children: [], columnSpan: 7 }),
             ],
         });
 
         const tosTable = new Table({ rows: [tosHeader1, tosHeader2, ...tosRows, tosFooter], width: { size: 100, type: WidthType.PERCENTAGE } });
-        docChildren.push(tosTable);
-        docChildren.push(p({ children: [new PageBreak()] }));
+        children.push(tosTable);
 
-        // Questions
-        docChildren.push(p({ children: [boldText("Name: "), new TextRun({ text: "_".repeat(50), underline: {} })] }));
-        docChildren.push(p({ children: [boldText("Grade & Section: "), new TextRun({ text: "_".repeat(40), underline: {} }), new TextRun("\t\t\t\t"), boldText("Score: ")] }));
-        docChildren.push(p({}));
-
-        exam.questions.forEach((q, index) => {
-            docChildren.push(p({ text: q.questionText, numbering: { reference: "exam-questions", level: 0 } }));
-            if (q.options) {
-                const optionParagraphs = q.options.map(opt => new Paragraph({ text: opt, numbering: { reference: "exam-questions", level: 1 } }));
-                docChildren.push(...optionParagraphs);
-            }
-            docChildren.push(p({}));
+        const tosDoc = new Document({
+            sections: [{
+                properties: {
+                    page: {
+                        size: { orientation: PageOrientation.LANDSCAPE, width: 18720, height: 12240 }, // 13 x 8.5 inches
+                        margin: { top: 720, right: 720, bottom: 720, left: 720 },
+                    },
+                },
+                children,
+            }],
         });
-        
-        // Answer Key
-        docChildren.push(p({ children: [new PageBreak()] }));
-        docChildren.push(p({ children: [boldText("ANSWER KEY")], alignment: AlignmentType.CENTER }));
-        docChildren.push(p({}));
 
-        const answerKeyParagraphs = exam.questions.map((q, index) => new Paragraph({ text: `${index + 1}. ${q.correctAnswer}` }));
-        docChildren.push(...answerKeyParagraphs);
+        const tosBlob = await Packer.toBlob(tosDoc);
+        this.downloadBlob(tosBlob, `TOS_${exam.title.replace(/\s/g, '_')}.docx`);
+    }
+
+    private async _generateAndDownloadExamQuestionsDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
+        const font = "Times New Roman";
+        const p = (options: IParagraphOptions = {}) => new Paragraph(options);
+        const text = (txt: string, opts: IRunOptions = {}) => new TextRun({ text: txt, font, size: 28, ...opts }); // Increased to 14pt
+        const boldText = (txt: string, opts: IRunOptions = {}) => text(txt, { bold: true, ...opts });
+        
+        const children: (Paragraph | Table)[] = [];
+
+        children.push(p({ children: [boldText(settings.schoolName.toUpperCase())], alignment: AlignmentType.CENTER }));
+        children.push(p({ children: [boldText(exam.title.toUpperCase())], alignment: AlignmentType.CENTER }));
+        children.push(p({ children: [boldText(`${exam.subject.toUpperCase()} ${exam.gradeLevel}`)], alignment: AlignmentType.CENTER }));
+        children.push(p({}));
+        children.push(p({ children: [boldText("Name: "), new TextRun({ text: "_".repeat(50), size: 28, underline: {} })] }));
+        children.push(p({ children: [boldText("Grade & Section: "), new TextRun({ text: "_".repeat(40), size: 28, underline: {} }), new TextRun({ text: "\t\t\t\t" }), boldText("Score: ")] }));
+        children.push(p({}));
+
+        exam.questions.forEach((q) => {
+            children.push(p({ text: q.questionText, numbering: { reference: "exam-questions", level: 0 } }));
+            if (q.options) {
+                const optionParagraphs = q.options.map(opt => p({ text: opt, numbering: { reference: "exam-questions", level: 1 } }));
+                children.push(...optionParagraphs);
+            }
+            children.push(p({}));
+        });
+
+        children.push(p({ children: [new PageBreak()] }));
+        children.push(p({ children: [boldText("ANSWER KEY", { size: 24 })], alignment: AlignmentType.CENTER }));
+        children.push(p({}));
+
+        const answerKeyColumns: Paragraph[][] = [[], [], []];
+        exam.questions.forEach((q, index) => {
+            const columnIndex = index % 3;
+            const answerIndex = q.options?.indexOf(q.correctAnswer) ?? -1;
+            const answerLetter = answerIndex !== -1 ? String.fromCharCode(65 + answerIndex) : 'N/A';
+            answerKeyColumns[columnIndex].push(p({ children: [text(`${index + 1}. ${answerLetter}`, { size: 24 })] }));
+        });
+
+        const answerKeyTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [33, 34, 33],
+            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+            rows: [ new TableRow({
+                children: [
+                    new TableCell({ children: answerKeyColumns[0], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                    new TableCell({ children: answerKeyColumns[1], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                    new TableCell({ children: answerKeyColumns[2], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                ]
+            })]
+        });
+        children.push(answerKeyTable);
 
         const numberingConfig = {
             config: [
@@ -1751,13 +1809,13 @@ class DocxService {
             ],
         };
 
-        const doc = new Document({
+        const examDoc = new Document({
             numbering: numberingConfig,
-            sections: [{ children: docChildren }],
+            sections: [{ children }],
         });
 
-        const blob = await Packer.toBlob(doc);
-        this.downloadBlob(blob, `${exam.title.replace(/\s/g, '_')}.docx`);
+        const examBlob = await Packer.toBlob(examDoc);
+        this.downloadBlob(examBlob, `${exam.title.replace(/\s/g, '_')}.docx`);
     }
 }
 
