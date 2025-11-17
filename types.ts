@@ -437,7 +437,6 @@ export interface GeneratedExam {
     title: string;
     tableOfSpecifications: GeneratedExamTosItem[];
     questions: GeneratedQuizQuestion[];
-    // FIX: Add missing properties to align with usage in docxService.
     subject: string;
     gradeLevel: string;
 }

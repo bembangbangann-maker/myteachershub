@@ -558,11 +558,30 @@ export const generateExam = async (options: { objectives: { text: string; days: 
     const { objectives, subject, gradeLevel } = options;
     const model = "gemini-2.5-pro";
     const prompt = `
-        Generate a complete exam for ${subject} Grade ${gradeLevel}.
-        1. Create a detailed Table of Specifications (TOS) based on these objectives and days taught: ${JSON.stringify(objectives)}. The TOS must include columns for objective, days, percentage, number of items, item placement, and a breakdown across Bloom's Taxonomy levels (Remembering, Understanding, Applying, Analyzing, Evaluating, Creating).
-        2. Generate multiple-choice questions based on the TOS, ensuring correct item placement and cognitive level. Each question should have 4 options.
-        3. Create a title for the exam.
-        4. Return a JSON object adhering to the schema.
+        You are an expert curriculum designer for the Department of Education. Your task is to generate a complete 50-item periodical examination.
+
+        **Inputs:**
+        - Subject: ${subject}
+        - Grade Level: ${gradeLevel}
+        - Learning Objectives and Days Taught: ${JSON.stringify(objectives)}
+
+        **Instructions:**
+
+        1.  **Create a Table of Specifications (TOS):**
+            - The total number of items MUST be exactly 50.
+            - Calculate the percentage for each objective based on the days taught: \`(Days for Objective / Total Days) * 100%\`.
+            - Calculate the number of items for each objective: \`round(Percentage * 50)\`. Adjust rounding to ensure the total is exactly 50 items.
+            - Distribute the number of items for each objective across the 6 levels of Bloom's Taxonomy: Remembering, Understanding, Applying, Analyzing, Evaluating, Creating. The distribution should be appropriate for the grade level and subject. Use empty strings "" for levels with 0 items.
+            - Determine the item placement for each objective (e.g., "1-5", "6, 10, 12-14"). The placement must match the number of items.
+
+        2.  **Generate Test Questions:**
+            - Based STRICTLY on the TOS you just created, generate 50 multiple-choice questions.
+            - Each question must have 4 options.
+            - The questions must be numbered from 1 to 50 and must correspond to the 'Item Placement' in the TOS.
+            - The cognitive level of each question must match the distribution in the TOS.
+
+        3.  **Output:**
+            - Generate a single, valid JSON object that adheres to the provided schema. Do not include any text or explanations outside the JSON structure.
     `;
 
     try {
