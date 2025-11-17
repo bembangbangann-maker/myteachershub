@@ -1101,7 +1101,7 @@ class DocxService {
             switch (grade) {
                 case '7': return 'E2EFDA'; // Light Green
                 case '8': return 'FFF2CC'; // Light Yellow
-                case '9': return 'F8CBAD'; // Light Red (Salmon)
+                case '9': return 'F8CBAD'; // Light Red
                 case '10': return 'DDEBF7'; // Light Blue
                 default: return 'D9D9D9'; // Default light gray
             }
@@ -1122,8 +1122,14 @@ class DocxService {
             sections: [{
                 properties: {
                     page: {
-                        size: { width: 18720, height: 12240, orientation: PageOrientation.LANDSCAPE }, // 13x8.5 inches landscape
-                        margin: { top: 720, right: 720, bottom: 720, left: 720 }
+                        size: { 
+                            orientation: PageOrientation.LANDSCAPE,
+                            // Set portrait dimensions and let orientation swap them, as a robust fix.
+                            // 8.5 inches = 12240 DXA, 13 inches = 18720 DXA
+                            width: 18720, 
+                            height: 12240,
+                        },
+                        margin: { top: 720, right: 720, bottom: 720, left: 720 } // 0.5 inch margins
                     }
                 },
                 children: [
