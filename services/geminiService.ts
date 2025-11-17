@@ -579,8 +579,9 @@ export const generateExam = async (options: { objectives: { text: string; days: 
         2.  **Generate Test Questions:**
             - Based STRICTLY on the TOS you just created, generate 50 multiple-choice questions.
             - Each question must have 4 options.
-            - The questions must be numbered from 1 to 50 and must correspond to the 'Item Placement' in the TOS.
-            - The cognitive level of each question must match the distribution in the TOS.
+            - The questions' content must correspond to the 'Item Placement' and cognitive level in the TOS.
+            - **CRITICAL INSTRUCTION:** For the \`questionText\` field, provide ONLY the question itself. Do NOT include any numbering like "1." or "2.".
+            - **CRITICAL INSTRUCTION:** For the \`options\` array, provide ONLY the option text. Do NOT include any lettering like "A.", "B.", or "C.". For example, an option should be "The capital of France" NOT "A. The capital of France".
 
         3.  **Output:**
             - Generate a single, valid JSON object that adheres to the provided schema. Do not include any text or explanations outside the JSON structure.
