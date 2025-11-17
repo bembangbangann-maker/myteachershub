@@ -439,4 +439,5 @@ export interface GeneratedExam {
     questions: GeneratedQuizQuestion[];
     subject: string;
     gradeLevel: string;
+    quarter: string;
 }

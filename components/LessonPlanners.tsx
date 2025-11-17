@@ -115,6 +115,8 @@ const LessonPlanners: React.FC = () => {
     const [examObjectives, setExamObjectives] = useState<ExamObjective[]>([{ id: `obj-${Date.now()}`, text: '', days: '' }]);
     const [examSubject, setExamSubject] = useState('Science');
     const [examGradeLevel, setExamGradeLevel] = useState('10');
+    // FIX: Add state for exam quarter to resolve missing property error.
+    const [examQuarter, setExamQuarter] = useState<string>('1');
     const [examContent, setExamContent] = useState<GeneratedExam | null>(null);
 
 
@@ -139,15 +141,18 @@ const LessonPlanners: React.FC = () => {
                 if (state.examObjectives) setExamObjectives(state.examObjectives);
                 if (state.examSubject) setExamSubject(state.examSubject);
                 if (state.examGradeLevel) setExamGradeLevel(state.examGradeLevel);
+                // FIX: Load saved exam quarter from local storage.
+                if (state.examQuarter) setExamQuarter(state.examQuarter);
                 if (state.examContent) setExamContent(state.examContent);
             }
         } catch (e) { console.error("Could not parse saved lesson planner state.", e); }
     }, []);
 
     useEffect(() => {
-        const stateToSave = { dlpForm, dllForm, quizForm, lasForm, activeTab, dlpContent, dllContent, quizContent, lasContent, teacherPosition, dllFormat, examObjectives, examSubject, examGradeLevel, examContent };
+        // FIX: Include examQuarter in the state saved to local storage.
+        const stateToSave = { dlpForm, dllForm, quizForm, lasForm, activeTab, dlpContent, dllContent, quizContent, lasContent, teacherPosition, dllFormat, examObjectives, examSubject, examGradeLevel, examQuarter, examContent };
         localStorage.setItem('lessonPlannersState_v2', JSON.stringify(stateToSave));
-    }, [dlpForm, dllForm, quizForm, lasForm, activeTab, dlpContent, dllContent, quizContent, lasContent, teacherPosition, dllFormat, examObjectives, examSubject, examGradeLevel, examContent]);
+    }, [dlpForm, dllForm, quizForm, lasForm, activeTab, dlpContent, dllContent, quizContent, lasContent, teacherPosition, dllFormat, examObjectives, examSubject, examGradeLevel, examQuarter, examContent]);
 
 
     useEffect(() => {
@@ -282,6 +287,8 @@ const LessonPlanners: React.FC = () => {
                 objectives: objectivesWithDays,
                 subject: examSubject,
                 gradeLevel: examGradeLevel,
+                // FIX: Pass the examQuarter state to the generateExam function.
+                quarter: examQuarter,
             });
             setExamContent(content);
             toast.success('Examination generated successfully!', { id: toastId });
@@ -661,6 +668,8 @@ const LessonPlanners: React.FC = () => {
                                 setSubject={setExamSubject}
                                 gradeLevel={examGradeLevel}
                                 setGradeLevel={setExamGradeLevel}
+                                quarter={examQuarter}
+                                setQuarter={setExamQuarter}
                                 onGenerate={handleGenerateExam}
                                 isLoading={isLoading}
                             />
@@ -739,7 +748,39 @@ const DllFormUI = ({ dllForm, handleDllFormChange, dllFormat, setDllFormat, gene
 const LasFormUI = ({ lasForm, handleLasFormChange, generateLAS, isLoading }: any) => (
     <div className="space-y-4">
         <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><ClipboardCheckIcon className="w-6 h-6 mr-2 text-primary" />DLP-Style Learning Activity Sheet</h3>
-        {/* Form fields here */}
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label htmlFor="subject" className="block text-sm font-medium text-base-content mb-1">Subject<span className="text-error">*</span></label>
+                <select id="subject" value={lasForm.subject} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    {Object.entries(subjectAreas).map(([group, subjects]) => (
+                        <optgroup label={group} key={group}>
+                            {subjects.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                        </optgroup>
+                    ))}
+                </select>
+            </div>
+            <div>
+                <label htmlFor="gradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
+                <select id="gradeLevel" value={lasForm.gradeLevel} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option> ))}
+                </select>
+            </div>
+        </div>
+        
+        <TextAreaField id="learningCompetency" label="Learning Competency" value={lasForm.learningCompetency} onChange={handleLasFormChange} required placeholder="Paste the learning competency here..." />
+        
+        <TextAreaField id="lessonObjective" label="Lesson Objective" value={lasForm.lessonObjective} onChange={handleLasFormChange} required placeholder="e.g., Identify the parts of a plant" />
+        
+        <div className="grid grid-cols-2 gap-4">
+            <InputField id="activityType" label="Activity Focus/Type" value={lasForm.activityType} onChange={handleLasFormChange} placeholder="e.g., Guided Practice, Discovery" />
+            <div>
+                <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
+                <select id="language" value={lasForm.language} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    <option>English</option>
+                    <option>Filipino</option>
+                </select>
+            </div>
+        </div>
         <div className="pt-4"><button onClick={generateLAS} disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Learning Sheet'}</button></div>
     </div>
 );
@@ -752,15 +793,26 @@ const QuizFormUI = ({ quizForm, handleQuizFormChange, handleQuizTypeChange, gene
     </form>
 );
 
-const ExamGeneratorForm = ({ examObjectives, onAddObjective, onRemoveObjective, onObjectiveChange, subject, setSubject, gradeLevel, setGradeLevel, onGenerate, isLoading }: any) => (
+const ExamGeneratorForm = ({ examObjectives, onAddObjective, onRemoveObjective, onObjectiveChange, subject, setSubject, gradeLevel, setGradeLevel, quarter, setQuarter, onGenerate, isLoading }: any) => (
     <div className="space-y-4">
         <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><ClipboardCheckIcon className="w-6 h-6 mr-2 text-primary" />50-Item Exam Generator</h3>
-        <div className="grid grid-cols-2 gap-4">
-            <InputField id="examSubject" label="Subject" value={subject} onChange={(e: any) => setSubject(e.target.value)} required />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+                <InputField id="examSubject" label="Subject" value={subject} onChange={(e: any) => setSubject(e.target.value)} required />
+            </div>
             <div>
                 <label htmlFor="examGradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
                 <select id="examGradeLevel" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
                     {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option> ))}
+                </select>
+            </div>
+            <div>
+                <label htmlFor="examQuarter" className="block text-sm font-medium text-base-content mb-1">Quarter<span className="text-error">*</span></label>
+                <select id="examQuarter" value={quarter} onChange={(e) => setQuarter(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    <option value="1">1st</option>
+                    <option value="2">2nd</option>
+                    <option value="3">3rd</option>
+                    <option value="4">4th</option>
                 </select>
             </div>
         </div>

@@ -553,9 +553,9 @@ export const generateLearningActivitySheet = async (options: { subject: string; 
 };
 
 const generatedExamTosItemSchema = { type: Type.OBJECT, properties: { objective: { type: Type.STRING }, daysTaught: { type: Type.NUMBER }, percentage: { type: Type.STRING }, numItems: { type: Type.NUMBER }, itemPlacement: { type: Type.STRING }, remembering: { type: Type.STRING }, understanding: { type: Type.STRING }, applying: { type: Type.STRING }, analyzing: { type: Type.STRING }, evaluating: { type: Type.STRING }, creating: { type: Type.STRING } }, required: ["objective", "daysTaught", "percentage", "numItems", "itemPlacement", "remembering", "understanding", "applying", "analyzing", "evaluating", "creating"] };
-const generatedExamSchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, tableOfSpecifications: { type: Type.ARRAY, items: generatedExamTosItemSchema }, questions: { type: Type.ARRAY, items: generatedQuizQuestionSchema }, subject: { type: Type.STRING }, gradeLevel: { type: Type.STRING } }, required: ["title", "tableOfSpecifications", "questions", "subject", "gradeLevel"] };
-export const generateExam = async (options: { objectives: { text: string; days: string }[]; subject: string; gradeLevel: string; }): Promise<GeneratedExam> => {
-    const { objectives, subject, gradeLevel } = options;
+const generatedExamSchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, tableOfSpecifications: { type: Type.ARRAY, items: generatedExamTosItemSchema }, questions: { type: Type.ARRAY, items: generatedQuizQuestionSchema }, subject: { type: Type.STRING }, gradeLevel: { type: Type.STRING }, quarter: { type: Type.STRING } }, required: ["title", "tableOfSpecifications", "questions", "subject", "gradeLevel", "quarter"] };
+export const generateExam = async (options: { objectives: { text: string; days: string }[]; subject: string; gradeLevel: string; quarter: string; }): Promise<GeneratedExam> => {
+    const { objectives, subject, gradeLevel, quarter } = options;
     const model = "gemini-2.5-pro";
     const prompt = `
         You are an expert curriculum designer for the Department of Education. Your task is to generate a complete 50-item periodical examination.
@@ -563,6 +563,7 @@ export const generateExam = async (options: { objectives: { text: string; days: 
         **Inputs:**
         - Subject: ${subject}
         - Grade Level: ${gradeLevel}
+        - Quarter: ${quarter}
         - Learning Objectives and Days Taught: ${JSON.stringify(objectives)}
 
         **Instructions:**

@@ -1648,69 +1648,52 @@ class DocxService {
     }
 
     public async generateExamDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
-        // This function will now orchestrate the generation of two separate documents.
-        const toastId = toast.loading('Generating examination documents...');
-        try {
-            // Generate and download TOS first
-            await this._generateAndDownloadTosDocx(exam, settings);
-            
-            // Then generate and download the exam questions
-            await this._generateAndDownloadExamQuestionsDocx(exam, settings);
+        const font = "Bookman Old Style";
+        const size = 22; // 11pt
 
-            toast.success('Examination and TOS documents downloaded!', { id: toastId });
-        } catch (error) {
-            console.error("Error generating exam documents:", error);
-            const message = error instanceof Error ? error.message : "An unknown error occurred.";
-            toast.error(`Failed to generate documents: ${message}`, { id: toastId });
-        }
-    }
-
-    private async _generateAndDownloadTosDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
-        const font = "Times New Roman";
         const p = (options: IParagraphOptions = {}) => new Paragraph(options);
-        const text = (txt: string, opts: IRunOptions = {}) => new TextRun({ text: txt, font, size: 20, ...opts }); // 10pt
+        const text = (txt: string, opts: IRunOptions = {}) => new TextRun({ text: txt, font, size: opts.size ?? size, ...opts });
         const boldText = (txt: string, opts: IRunOptions = {}) => text(txt, { bold: true, ...opts });
+        const thinBorder = { style: BorderStyle.SINGLE, size: 2, color: "000000" };
+        const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
 
-        const children: (Paragraph | Table)[] = [];
-        
-        children.push(p({ children: [boldText(settings.schoolName.toUpperCase(), { size: 24 })], alignment: AlignmentType.CENTER }));
-        children.push(p({ children: [boldText("TABLE OF SPECIFICATIONS", { size: 22, underline: { type: UnderlineType.SINGLE } })], alignment: AlignmentType.CENTER }));
-        children.push(p({ children: [boldText(`${exam.subject.toUpperCase()} ${exam.gradeLevel}`, { size: 22 })], alignment: AlignmentType.CENTER }));
-        children.push(p({}));
+        // --- SECTION 1: TABLE OF SPECIFICATIONS (LANDSCAPE) ---
+        const tosChildren: (Paragraph | Table)[] = [];
+        tosChildren.push(p({ children: [boldText(settings.schoolName.toUpperCase())], alignment: AlignmentType.CENTER }));
+        tosChildren.push(p({ children: [boldText("TABLE OF SPECIFICATIONS", { underline: { type: UnderlineType.SINGLE } })], alignment: AlignmentType.CENTER }));
+        const quarterText = exam.quarter === '1' ? 'FIRST' : exam.quarter === '2' ? 'SECOND' : exam.quarter === '3' ? 'THIRD' : 'FOURTH';
+        tosChildren.push(p({ children: [boldText(`${quarterText} QUARTER EXAMINATION IN ${exam.subject.toUpperCase()} ${exam.gradeLevel}`)], alignment: AlignmentType.CENTER }));
+        tosChildren.push(p({}));
 
         const tosHeader1 = new TableRow({
             tableHeader: true,
             children: [
-                new TableCell({ children: [p({ children: [boldText("Learning Competencies")] })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
-                new TableCell({ children: [p({ children: [boldText("No. of Days Taught")] })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
-                new TableCell({ children: [p({ children: [boldText("%")] })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
-                new TableCell({ children: [p({ children: [boldText("No. of Items")] })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
-                new TableCell({ children: [p({ children: [boldText("Cognitive Process Dimensions")] })], columnSpan: 6, verticalAlign: VerticalAlign.CENTER }),
-                new TableCell({ children: [p({ children: [boldText("Item Placement")] })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [p({ children: [boldText("Learning Competencies", { size: 18 })], alignment: AlignmentType.CENTER })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER, width: { size: 30, type: WidthType.PERCENTAGE } }),
+                new TableCell({ children: [p({ children: [boldText("No. of Days Taught", { size: 18 })], alignment: AlignmentType.CENTER })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [p({ children: [boldText("%", { size: 18 })], alignment: AlignmentType.CENTER })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [p({ children: [boldText("No. of Items", { size: 18 })], alignment: AlignmentType.CENTER })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [p({ children: [boldText("Cognitive Process Dimensions", { size: 18 })], alignment: AlignmentType.CENTER })], columnSpan: 6, verticalAlign: VerticalAlign.CENTER }),
+                new TableCell({ children: [p({ children: [boldText("Item Placement", { size: 18 })], alignment: AlignmentType.CENTER })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER, width: {size: 15, type: WidthType.PERCENTAGE} }),
             ],
         });
         const tosHeader2 = new TableRow({
             tableHeader: true,
-            children: [
-                new TableCell({ children: [p({ children: [text("Rem")] })] }), new TableCell({ children: [p({ children: [text("Und")] })] }),
-                new TableCell({ children: [p({ children: [text("App")] })] }), new TableCell({ children: [p({ children: [text("Ana")] })] }),
-                new TableCell({ children: [p({ children: [text("Eva")] })] }), new TableCell({ children: [p({ children: [text("Cre")] })] }),
-            ],
+            children: [ "Rem", "Und", "App", "Ana", "Eva", "Cre" ].map(label => new TableCell({ children: [p({ children: [text(label, { size: 18 })], alignment: AlignmentType.CENTER })] })),
         });
 
         const tosRows = exam.tableOfSpecifications.map(item => new TableRow({
             children: [
-                new TableCell({ children: [p({ children: [text(item.objective)], alignment: AlignmentType.LEFT })] }),
-                new TableCell({ children: [p({ children: [text(String(item.daysTaught))] })] }),
-                new TableCell({ children: [p({ children: [text(item.percentage)] })] }),
-                new TableCell({ children: [p({ children: [text(String(item.numItems))] })] }),
-                new TableCell({ children: [p({ children: [text(item.remembering)] })] }),
-                new TableCell({ children: [p({ children: [text(item.understanding)] })] }),
-                new TableCell({ children: [p({ children: [text(item.applying)] })] }),
-                new TableCell({ children: [p({ children: [text(item.analyzing)] })] }),
-                new TableCell({ children: [p({ children: [text(item.evaluating)] })] }),
-                new TableCell({ children: [p({ children: [text(item.creating)] })] }),
-                new TableCell({ children: [p({ children: [text(item.itemPlacement)] })] }),
+                new TableCell({ children: [p({ children: [text(item.objective, { size: 18 })], alignment: AlignmentType.LEFT })] }),
+                new TableCell({ children: [p({ children: [text(String(item.daysTaught), { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.percentage, { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(String(item.numItems), { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.remembering, { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.understanding, { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.applying, { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.analyzing, { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.evaluating, { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.creating, { size: 18 })], alignment: AlignmentType.CENTER })] }),
+                new TableCell({ children: [p({ children: [text(item.itemPlacement, { size: 18 })], alignment: AlignmentType.CENTER })] }),
             ],
         }));
 
@@ -1726,96 +1709,70 @@ class DocxService {
                 new TableCell({ children: [], columnSpan: 7 }),
             ],
         });
-
         const tosTable = new Table({ rows: [tosHeader1, tosHeader2, ...tosRows, tosFooter], width: { size: 100, type: WidthType.PERCENTAGE } });
-        children.push(tosTable);
+        tosChildren.push(tosTable);
 
-        const tosDoc = new Document({
-            sections: [{
-                properties: {
-                    page: {
-                        size: { orientation: PageOrientation.LANDSCAPE, width: 18720, height: 12240 }, // 13 x 8.5 inches
-                        margin: { top: 720, right: 720, bottom: 720, left: 720 },
-                    },
-                },
-                children,
-            }],
+        // --- SECTION 2: EXAM QUESTIONS (PORTRAIT) ---
+        const examChildren: (Paragraph | Table)[] = [];
+        const examHeaderTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: noBorder,
+            rows: [
+                new TableRow({ children: [new TableCell({ children: [ p({ children: [boldText(settings.schoolName.toUpperCase())], alignment: AlignmentType.CENTER }), p({ children: [boldText(exam.title.toUpperCase())], alignment: AlignmentType.CENTER }), p({ children: [boldText(`${exam.subject.toUpperCase()} ${exam.gradeLevel}`)], alignment: AlignmentType.CENTER }), ], borders: noBorder, columnSpan: 3 })] }),
+                new TableRow({ children: [new TableCell({ children: [p({})], borders: noBorder, columnSpan: 3 })] }),
+                new TableRow({ children: [ new TableCell({ children: [p({ children: [boldText("Name: "), new TextRun({ text: "_".repeat(40), underline: {} })] })], borders: noBorder, width: { size: 50, type: WidthType.PERCENTAGE } }), new TableCell({ children: [p({ children: [boldText("Grade & Section: "), new TextRun({ text: "_".repeat(20), underline: {} })] })], borders: noBorder, width: { size: 30, type: WidthType.PERCENTAGE } }), new TableCell({ children: [p({ children: [boldText("Score: ")] })], borders: noBorder, width: { size: 20, type: WidthType.PERCENTAGE } }), ] }),
+            ],
         });
-
-        const tosBlob = await Packer.toBlob(tosDoc);
-        this.downloadBlob(tosBlob, `TOS_${exam.title.replace(/\s/g, '_')}.docx`);
-    }
-
-    private async _generateAndDownloadExamQuestionsDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
-        const font = "Times New Roman";
-        const p = (options: IParagraphOptions = {}) => new Paragraph(options);
-        const text = (txt: string, opts: IRunOptions = {}) => new TextRun({ text: txt, font, size: 28, ...opts }); // Increased to 14pt
-        const boldText = (txt: string, opts: IRunOptions = {}) => text(txt, { bold: true, ...opts });
-        
-        const children: (Paragraph | Table)[] = [];
-
-        children.push(p({ children: [boldText(settings.schoolName.toUpperCase())], alignment: AlignmentType.CENTER }));
-        children.push(p({ children: [boldText(exam.title.toUpperCase())], alignment: AlignmentType.CENTER }));
-        children.push(p({ children: [boldText(`${exam.subject.toUpperCase()} ${exam.gradeLevel}`)], alignment: AlignmentType.CENTER }));
-        children.push(p({}));
-        children.push(p({ children: [boldText("Name: "), new TextRun({ text: "_".repeat(50), size: 28, underline: {} })] }));
-        children.push(p({ children: [boldText("Grade & Section: "), new TextRun({ text: "_".repeat(40), size: 28, underline: {} }), new TextRun({ text: "\t\t\t\t" }), boldText("Score: ")] }));
-        children.push(p({}));
+        examChildren.push(examHeaderTable);
+        examChildren.push(p({}));
 
         exam.questions.forEach((q) => {
-            children.push(p({ text: q.questionText, numbering: { reference: "exam-questions", level: 0 } }));
+            examChildren.push(p({ children: [text(q.questionText)], numbering: { reference: "exam-questions", level: 0 } }));
             if (q.options) {
-                const optionParagraphs = q.options.map(opt => p({ text: opt, numbering: { reference: "exam-questions", level: 1 } }));
-                children.push(...optionParagraphs);
+                const optionParagraphs = q.options.map(opt => p({ children: [text(opt)], numbering: { reference: "exam-questions", level: 1 } }));
+                examChildren.push(...optionParagraphs);
             }
-            children.push(p({}));
+            examChildren.push(p({}));
         });
 
-        children.push(p({ children: [new PageBreak()] }));
-        children.push(p({ children: [boldText("ANSWER KEY", { size: 24 })], alignment: AlignmentType.CENTER }));
-        children.push(p({}));
+        // --- SECTION 3: ANSWER KEY (PORTRAIT, NEW PAGE) ---
+        const answerKeyChildren: (Paragraph | Table)[] = [];
+        answerKeyChildren.push(p({ children: [boldText("ANSWER KEY")], alignment: AlignmentType.CENTER }));
+        answerKeyChildren.push(p({}));
 
-        const answerKeyColumns: Paragraph[][] = [[], [], []];
+        const answerKeyColumns: Paragraph[][] = [[], [], [], []];
         exam.questions.forEach((q, index) => {
-            const columnIndex = index % 3;
+            const columnIndex = index % 4;
             const answerIndex = q.options?.indexOf(q.correctAnswer) ?? -1;
             const answerLetter = answerIndex !== -1 ? String.fromCharCode(65 + answerIndex) : 'N/A';
-            answerKeyColumns[columnIndex].push(p({ children: [text(`${index + 1}. ${answerLetter}`, { size: 24 })] }));
+            answerKeyColumns[columnIndex].push(p({ children: [text(`${index + 1}. ${answerLetter}`)] }));
         });
-
+        
         const answerKeyTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            columnWidths: [33, 34, 33],
-            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-            rows: [ new TableRow({
-                children: [
-                    new TableCell({ children: answerKeyColumns[0], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                    new TableCell({ children: answerKeyColumns[1], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                    new TableCell({ children: answerKeyColumns[2], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                ]
-            })]
+            columnWidths: [25, 25, 25, 25],
+            borders: noBorder,
+            rows: [new TableRow({ children: answerKeyColumns.map(col => new TableCell({ children: col, borders: noBorder })) })]
         });
-        children.push(answerKeyTable);
+        answerKeyChildren.push(answerKeyTable);
 
+        // --- DOCUMENT ASSEMBLY ---
         const numberingConfig = {
-            config: [
-                {
-                    reference: "exam-questions",
-                    levels: [
-                        { level: 0, format: LevelFormat.DECIMAL, text: "%1.", style: { paragraph: { indent: { left: 360, hanging: 360 } } } },
-                        { level: 1, format: LevelFormat.LOWER_LETTER, text: "%2.", style: { paragraph: { indent: { left: 720, hanging: 360 } } } },
-                    ],
-                },
-            ],
+            config: [ { reference: "exam-questions", levels: [ { level: 0, format: LevelFormat.DECIMAL, text: "%1.", style: { paragraph: { indent: { left: 360, hanging: 360 } } } }, { level: 1, format: LevelFormat.LOWER_LETTER, text: "%2.", style: { paragraph: { indent: { left: 720, hanging: 360 } } } }, ], }, ],
         };
 
-        const examDoc = new Document({
+        const doc = new Document({
+            styles: { default: { document: { run: { font, size } } } },
             numbering: numberingConfig,
-            sections: [{ children }],
+            sections: [
+                { properties: { page: { size: { orientation: PageOrientation.LANDSCAPE, width: 18720, height: 12240 }, margin: { top: 720, right: 720, bottom: 720, left: 720 } } }, children: tosChildren },
+                { properties: { page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } } }, children: examChildren },
+                { properties: { page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } } }, children: [new Paragraph({ children: [new PageBreak()] }), ...answerKeyChildren] },
+            ],
         });
 
-        const examBlob = await Packer.toBlob(examDoc);
-        this.downloadBlob(examBlob, `${exam.title.replace(/\s/g, '_')}.docx`);
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `${exam.title.replace(/\s/g, '_')}.docx`);
     }
 }
 
