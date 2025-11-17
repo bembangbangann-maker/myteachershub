@@ -354,13 +354,13 @@ export const generateDlpContent = async (options: {
             - If format is "4As", the procedure titles MUST be exactly: Activity, Analysis, Abstraction, Application.
             - If format is "5Es", the procedure titles MUST be exactly: Engage, Explore, Explain, Elaborate, Evaluate.
             - If format is "Explicit Instruction", the procedure titles MUST be exactly: "I do" (Modeling), "We do" (Guided Practice), "You do" (Independent Practice).
-        2.  Generate all other sections: Content Standard, Performance Standard, Topic, Learning References, Learning Materials, Procedures, and Evaluation Questions.
+        2.  Generate all other sections: Content Standard, Performance Standard, Topic, Learning References, Learning Materials.
         3.  For each procedure step:
             - Use the exact titles as specified in Instruction 1. You may add a creative, descriptive subtitle within the 'content' field if needed.
-            - The 'content' for each procedure should detail both the teacher's actions/instructions and the expected student activities. **IMPORTANT: Describe the activities directly. DO NOT add subheadings like "Teacher's Activity" or "Student's Activity".** Integrate both into a flowing description of the classroom process. Use markdown for formatting: use **bold letters** for emphasis and *italics* for special notes. Do not use asterisks for lists or any other purpose.
+            - The 'content' for each procedure should detail both the teacher's actions/instructions and the expected student activities. **IMPORTANT: Describe the activities directly. DO NOT add subheadings like "Teacher's Activity" or "Student's Activity".** Integrate both into a flowing description of the classroom process, which must include a mix of LOTS (Lower-Order Thinking Skills) and HOTS (Higher-Order Thinking Skills) questions to facilitate discussion. Use markdown for formatting: use **bold letters** for emphasis and *italics* for special notes. Do not use asterisks for lists or any other purpose.
             - Align each procedure with a relevant PPST indicator based on the teacher's position (${teacherPosition}).
-        4.  Create 5 multiple-choice evaluation questions with 4 options each, and provide the correct answer.
-        5.  For "remarksContent", provide an empty string "" as this section is for the teacher's handwritten notes after the lesson.
+        4.  For the \`evaluationQuestions\` section, you MUST generate exactly 5 multiple-choice questions. Each question MUST have 4 options in the \`options\` array and a single correct answer in the \`answer\` field.
+        5.  For "remarksContent", provide an empty string "" as this section is for the teacher's handwritten notes after the lesson. Do not generate reflection content.
         6.  Strictly return the output as a JSON object adhering to the provided schema. Do not add any extra text or explanations.
     `;
 
