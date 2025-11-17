@@ -1690,7 +1690,6 @@ class DocxService {
                 new TableCell({ children: [p({ children: [text(String(item.daysTaught))], alignment: AlignmentType.CENTER })] }),
                 new TableCell({ children: [p({ children: [text(item.percentage)], alignment: AlignmentType.CENTER })] }),
                 new TableCell({ children: [p({ children: [text(String(item.numItems))], alignment: AlignmentType.CENTER })] }),
-                // FIX: Access cognitive level properties directly from the item object.
                 new TableCell({ children: [p({ children: [text(item.remembering)], alignment: AlignmentType.CENTER })] }),
                 new TableCell({ children: [p({ children: [text(item.understanding)], alignment: AlignmentType.CENTER })] }),
                 new TableCell({ children: [p({ children: [text(item.applying)], alignment: AlignmentType.CENTER })] }),
