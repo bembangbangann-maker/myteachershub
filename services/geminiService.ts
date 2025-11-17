@@ -194,144 +194,170 @@ export const rephraseAnecdote = async (text: string, mode: 'correct' | 'rephrase
     }
 };
 
-const reportCardCommentSchema = { type: Type.OBJECT, properties: { strengths: { type: Type.STRING }, areasForImprovement: { type: Type.STRING }, closingStatement: { type: Type.STRING } }, required: ["strengths", "areasForImprovement", "closingStatement"] };
-
-export const generateReportCardComment = async (student: Student, grades: Grade[], anecdotes: Anecdote[]): Promise<{strengths: string, areasForImprovement: string, closingStatement: string}> => {
-    const model = "gemini-2.5-pro";
-    const gradeSummary = grades.map(g => ({ subject: g.subject, type: g.type, percentage: ((g.score / g.maxScore) * 100).toFixed(0) }));
-    const prompt = `As a caring teacher, write a report card comment for ${student.firstName} ${student.lastName}.
-        Student Data: - Grades: ${JSON.stringify(gradeSummary)} - Anecdotes: ${JSON.stringify(anecdotes.map(a => a.observation))}
-        Instructions: Write a positive paragraph on strengths, a constructive one on areas for improvement, and a brief closing statement. Format as JSON.`;
-    
-     try {
-        const response = await callApiProxy({ model, contents: prompt, config: { responseMimeType: "application/json", responseSchema: reportCardCommentSchema, safetySettings } });
-        return parseJsonFromAiResponse(response.text);
-    } catch (error) {
-        throw handleGeminiError(error, 'generateReportCardComment');
-    }
-};
-
 const quoteSchema = { type: Type.OBJECT, properties: { quote: { type: Type.STRING }, author: { type: Type.STRING } }, required: ["quote", "author"] };
-
 export const getInspirationalQuote = async (): Promise<{ quote: string; author: string }> => {
     const model = "gemini-2.5-flash";
-    const prompt = "Generate a short, inspirational quote for a teacher about education or growth. Return as JSON.";
+    const prompt = "Provide a short, inspirational quote suitable for a teacher. Include the author. Respond in JSON format.";
     try {
-        const response = await callApiProxy({ model, contents: prompt, config: { responseMimeType: "application/json", responseSchema: quoteSchema, safetySettings } });
-        const result = parseJsonFromAiResponse<{ quote: string; author: string }>(response.text);
-        if (!result.quote || !result.author) throw new Error("AI returned an invalid quote structure.");
-        return result;
+        const response = await callApiProxy({
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: quoteSchema, safetySettings }
+        });
+        return parseJsonFromAiResponse<{ quote: string; author: string }>(response.text);
     } catch (error) {
-        return { quote: "The beautiful thing about learning is that no one can take it away from you.", author: "B.B. King" }; // Failsafe
+        throw handleGeminiError(error, 'getInspirationalQuote');
     }
 };
 
-const certificateContentSchema = { type: Type.OBJECT, properties: { certificateText: { type: Type.STRING } }, required: ["certificateText"] };
-
-export const generateCertificateContent = async (details: { awardTitle: string; tone: string; achievements?: string }): Promise<string> => {
+const attendanceCommandSchema = { type: Type.OBJECT, properties: { status: { type: Type.STRING, enum: ["present", "absent", "late"] }, studentIds: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["status", "studentIds"] };
+export const processAttendanceCommand = async (command: string, students: Student[]): Promise<{ status: AttendanceStatus; studentIds: string[] }> => {
     const model = "gemini-2.5-flash";
-    const { awardTitle, tone, achievements } = details;
-    const prompt = `Craft body content for a student certificate for "${awardTitle}" with a ${tone} tone. ${achievements ? `Mention: "${achievements}"` : ''} Use placeholders '^^[STUDENT_NAME]^^' and '##[AWARD_TYPE]##'. Return JSON.`;
-
+    const studentList = students.map(s => ({ id: s.id, name: `${s.firstName} ${s.lastName}` }));
+    const prompt = `
+        Analyze the command: "${command}"
+        Determine the attendance status (present, absent, or late).
+        Identify the students mentioned. Match them against this list: ${JSON.stringify(studentList)}.
+        Return a JSON object with the status and a list of the corresponding student IDs.
+        If the command says "everyone" or "all", include all student IDs.
+    `;
     try {
-        const response = await callApiProxy({ model, contents: prompt, config: { responseMimeType: "application/json", responseSchema: certificateContentSchema, safetySettings } });
-        const result = parseJsonFromAiResponse<{ certificateText: string }>(response.text);
-        return result.certificateText;
-    } catch (error) {
-        throw handleGeminiError(error, 'generateCertificateContent');
-    }
-};
-
-export const processAttendanceCommand = async (command: string, students: Student[]): Promise<{ status: AttendanceStatus, studentIds: string[] } | null> => {
-    const model = "gemini-2.5-flash";
-    const updateAttendanceTool = {
-        functionDeclarations: [{
-            name: 'update_attendance',
-            description: 'Updates the attendance status for one or more students.',
-            parameters: {
-                type: Type.OBJECT,
-                properties: {
-                    status: { type: Type.STRING, enum: ['present', 'absent', 'late'] },
-                    studentNames: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of student first names, last names, or full names." },
-                },
-                required: ['status', 'studentNames'],
-            },
-        }],
-    };
-
-    const studentList = students.map(s => `${s.firstName} ${s.lastName}`).join(', ');
-    const prompt = `Command: "${command}". Update attendance for students from this list: ${studentList}.`;
-
-    try {
-        const response = await callApiProxy({ model, contents: prompt, config: { tools: [updateAttendanceTool], safetySettings } });
-        const fc = response.functionCalls?.[0];
-
-        if (fc && fc.name === 'update_attendance' && fc.args.studentNames) {
-            const status = fc.args.status as AttendanceStatus;
-            const namesToFind = fc.args.studentNames.map((name: string) => name.toLowerCase());
-            const studentIds = students
-                .filter(s => namesToFind.some((name: string) => 
-                    s.firstName.toLowerCase().includes(name) ||
-                    s.lastName.toLowerCase().includes(name) ||
-                    `${s.firstName} ${s.lastName}`.toLowerCase().includes(name)
-                ))
-                .map(s => s.id);
-            return { status, studentIds };
-        }
-        return null;
+        const response = await callApiProxy({
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: attendanceCommandSchema, safetySettings }
+        });
+        return parseJsonFromAiResponse<{ status: AttendanceStatus; studentIds: string[] }>(response.text);
     } catch (error) {
         throw handleGeminiError(error, 'processAttendanceCommand');
     }
 };
 
-// --- START OF MISSING FUNCTIONS ---
-
-// --- DLP GENERATOR ---
-const dlpProcedureSchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, content: { type: Type.STRING, description: "Detailed teacher and student activities using markdown for formatting. MUST explicitly label main activities as '(LOTS)' or '(HOTS)'." }, ppst: { type: Type.STRING, description: "Relevant PPST indicator for the procedure." } }, required: ["title", "content", "ppst"] };
-const dlpEvaluationQuestionSchema = { type: Type.OBJECT, properties: { question: { type: Type.STRING }, options: { type: Type.ARRAY, description: "An array of exactly 4 string options.", items: { type: Type.STRING } }, answer: { type: Type.STRING } }, required: ["question", "options", "answer"] };
-const dlpContentSchema = { type: Type.OBJECT, properties: { contentStandard: { type: Type.STRING }, performanceStandard: { type: Type.STRING }, topic: { type: Type.STRING }, learningReferences: { type: Type.STRING }, learningMaterials: { type: Type.STRING }, procedures: { type: Type.ARRAY, items: dlpProcedureSchema }, evaluationQuestions: { type: Type.ARRAY, description: "An array of exactly 5 multiple-choice questions.", items: dlpEvaluationQuestionSchema }, remarksContent: { type: Type.STRING } }, required: ["contentStandard", "performanceStandard", "topic", "learningReferences", "learningMaterials", "procedures", "evaluationQuestions", "remarksContent"] };
-
-export const generateDlpContent = async (details: {
-    gradeLevel: string,
-    learningCompetency: string,
-    lessonObjective: string,
-    previousLesson: string,
-    selectedQuarter: string,
-    subject: string,
-    teacherPosition: string,
-    language: 'English' | 'Filipino',
-    dlpFormat: string,
-}): Promise<DlpContent> => {
+const reportCardCommentSchema = { type: Type.OBJECT, properties: { strengths: { type: Type.STRING }, areasForImprovement: { type: Type.STRING }, closingStatement: { type: Type.STRING } }, required: ["strengths", "areasForImprovement", "closingStatement"] };
+export const generateReportCardComment = async (student: Student, grades: Grade[], anecdotes: Anecdote[]): Promise<{ strengths: string; areasForImprovement: string; closingStatement: string; }> => {
     const model = "gemini-2.5-pro";
     const prompt = `
-        You are an expert instructional designer for the Philippine Department of Education. Your task is to generate a complete Daily Lesson Plan (DLP) strictly following DepEd Order No. 42, s. 2016.
+        Generate a report card comment for ${student.firstName} ${student.lastName}.
+        Data:
+        Grades: ${JSON.stringify(grades)}
+        Anecdotes: ${JSON.stringify(anecdotes.map(a => a.observation))}
+        
+        Structure the comment into three parts:
+        1. "strengths": Positive observations.
+        2. "areasForImprovement": Constructive feedback.
+        3. "closingStatement": An encouraging final remark.
 
-        **User Inputs:**
-        - Grade Level: ${details.gradeLevel}
-        - Subject: ${details.subject}
-        - Learning Competency: ${details.learningCompetency}
-        - Lesson Objective: ${details.lessonObjective}
-        - Previous Lesson Topic: ${details.previousLesson}
-        - Language: ${details.language}
-        - DLP Format: ${details.dlpFormat}
-        - Teacher Position: ${details.teacherPosition} Teacher
+        Be professional, constructive, and personalized. Respond in JSON format.
+    `;
+    try {
+        const response = await callApiProxy({
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: reportCardCommentSchema, safetySettings }
+        });
+        return parseJsonFromAiResponse<{ strengths: string; areasForImprovement: string; closingStatement: string; }>(response.text);
+    } catch (error) {
+        throw handleGeminiError(error, 'generateReportCardComment');
+    }
+};
 
-        **Strict Generation Requirements:**
+const certificateContentSchema = { type: Type.OBJECT, properties: { newContent: { type: Type.STRING } }, required: ["newContent"] };
+export const generateCertificateContent = async (options: { awardTitle: string; tone: string; achievements: string; }): Promise<string> => {
+    const model = "gemini-2.5-flash";
+    const prompt = `
+        Create a concise and powerful body text for an academic award certificate.
+        - Award Title: "${options.awardTitle}"
+        - Tone: ${options.tone}
+        - Key Achievements to mention (optional): "${options.achievements}"
 
-        1.  **Alignment:** ALL generated content (standards, topic, activities, evaluation) MUST be directly and strongly anchored to the provided **Learning Competency** and **Lesson Objective**.
-        2.  **Standards & Topic:** Generate relevant Content and Performance Standards and a specific Topic based on the competency.
-        3.  **Procedures/Activities:**
-            *   Structure the procedures according to the specified format (${details.dlpFormat}).
-            *   For each procedure step, provide detailed teacher and student activities in the \`content\` field. Use Markdown for formatting (e.g., bolding, lists).
-            *   **Crucially, you MUST explicitly label the main cognitive activities as either '(LOTS)' for Lower-Order Thinking Skills or '(HOTS)' for Higher-Order Thinking Skills.** Ensure a logical progression from LOTS to HOTS.
-            *   All activities must be designed to help learners achieve the stated **Lesson Objective**.
-        4.  **Evaluation:**
-            *   Create **exactly 5 multiple-choice questions**.
-            *   Each question must have **exactly four (4) options**.
-            *   Provide the correct letter or full text answer for each question.
-            *   The evaluation MUST directly and accurately assess the achievement of the **Lesson Objective**.
-        5.  **PPST Indicators:** For each procedure, assign relevant PPST indicators appropriate for a **${details.teacherPosition} Teacher**.
-        6.  **Output Format:** Generate the output *directly* as a single JSON object. Do not include any extra text, conversation, or markdown formatting like \`\`\`json around the final JSON output.
+        Use these placeholders:
+        - ^^[STUDENT_NAME]^^ for the student's name (make it very large).
+        - ##[AWARD_TYPE]## for the specific award (make it large).
+        - [GRADE_AND_SECTION], [GENERAL_AVERAGE], [SCHOOL_NAME], [DAY], [MONTH], [YEAR].
+        
+        Use markdown like **bold** and *italics*.
+        Return a JSON object with a single key "newContent" containing the generated text.
+    `;
+    try {
+        const response = await callApiProxy({
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: certificateContentSchema, safetySettings }
+        });
+        const result = parseJsonFromAiResponse<{ newContent: string }>(response.text);
+        return result.newContent;
+    } catch (error) {
+        throw handleGeminiError(error, 'generateCertificateContent');
+    }
+};
+
+const dlpProcedureSchema = {
+    type: Type.OBJECT,
+    properties: {
+        title: { type: Type.STRING, description: "A creative, descriptive title for the activity (e.g., 'Activity #1: Word Hunt'). Do not use generic titles like 'Teacher's Activity'." },
+        content: { type: Type.STRING, description: "Detailed teacher and student activities. Use markdown for formatting: **bold** for emphasis, *italics* for special notes. Do not use asterisks (*), use bold or italics instead." },
+        ppst: { type: Type.STRING, description: "Relevant PPST Indicator code, e.g., 1.1.2" }
+    },
+    required: ["title", "content", "ppst"]
+};
+
+const dlpEvaluationQuestionSchema = {
+    type: Type.OBJECT,
+    properties: {
+        question: { type: Type.STRING },
+        options: { type: Type.ARRAY, items: { type: Type.STRING } },
+        answer: { type: Type.STRING }
+    },
+    required: ["question", "options", "answer"]
+};
+
+const dlpContentSchema = {
+    type: Type.OBJECT,
+    properties: {
+        contentStandard: { type: Type.STRING },
+        performanceStandard: { type: Type.STRING },
+        topic: { type: Type.STRING },
+        learningReferences: { type: Type.STRING, description: "List of references used." },
+        learningMaterials: { type: Type.STRING, description: "List of materials needed." },
+        procedures: { type: Type.ARRAY, items: dlpProcedureSchema },
+        evaluationQuestions: { type: Type.ARRAY, items: dlpEvaluationQuestionSchema },
+        remarksContent: { type: Type.STRING, description: "Content for the remarks section." }
+    },
+    required: ["contentStandard", "performanceStandard", "topic", "learningReferences", "learningMaterials", "procedures", "evaluationQuestions", "remarksContent"]
+};
+
+export const generateDlpContent = async (options: {
+    gradeLevel: string;
+    subject: string;
+    learningCompetency: string;
+    lessonObjective: string;
+    previousLesson: string;
+    selectedQuarter: string;
+    teacherPosition: string;
+    language: 'English' | 'Filipino';
+    dlpFormat: string;
+}): Promise<DlpContent> => {
+    const { gradeLevel, subject, learningCompetency, lessonObjective, previousLesson, selectedQuarter, teacherPosition, language, dlpFormat } = options;
+    const model = "gemini-2.5-pro";
+
+    const prompt = `
+        You are an expert Filipino educator creating a Daily Lesson Plan (DLP).
+        Your task is to generate a complete DLP in ${language} for a Grade ${gradeLevel} ${subject} class.
+        
+        Key Information:
+        - Quarter: ${selectedQuarter}
+        - Learning Competency: ${learningCompetency}
+        - Specific Lesson Objective: ${lessonObjective}
+        - Previous Lesson (for review context): ${previousLesson}
+        - Teacher's Position (for PPST alignment): ${teacherPosition}
+        - DLP Format: ${dlpFormat} (Use this format for the procedures. E.g., for 4As: Activity, Analysis, Abstraction, Application)
+
+        Instructions:
+        1.  Generate all sections of the DLP: Content Standard, Performance Standard, Topic, Learning References, Learning Materials, Procedures, Evaluation Questions, and Remarks.
+        2.  For the "Procedures" section:
+            - Create a sequence of activities based on the selected DLP Format (${dlpFormat}).
+            - For each procedure step (e.g., Motivation, Activity, Analysis), provide a creative and descriptive **title**. Do not use generic labels like "Teacher's Activity" or "Student's Activity". For example, use titles like "Activity #1: The Word Maze", "Group Discussion: Unpacking the Poem", or "Motivation: Picture Analysis".
+            - The 'content' for each procedure should detail both the teacher's actions/instructions and the expected student activities. Use markdown for formatting: use **bold letters** for emphasis and *italics* for special notes. Do not use asterisks for lists or any other purpose.
+            - Align each procedure with a relevant PPST indicator based on the teacher's position (${teacherPosition}).
+        3.  Create 5 multiple-choice evaluation questions with 4 options each, and provide the correct answer.
+        4.  Provide meaningful content for the "Remarks" section.
+        5.  Strictly return the output as a JSON object adhering to the provided schema. Do not add any extra text or explanations.
     `;
 
     try {
@@ -341,74 +367,103 @@ export const generateDlpContent = async (details: {
             config: {
                 responseMimeType: "application/json",
                 responseSchema: dlpContentSchema,
-                safetySettings
+                safetySettings,
             },
-            systemInstruction: "You are an expert DepEd instructional designer generating a structured DLP in JSON format."
+            systemInstruction: efficientGenerationSystemInstruction
         });
+
         return parseJsonFromAiResponse<DlpContent>(response.text);
+
     } catch (error) {
         throw handleGeminiError(error, 'generateDlpContent');
     }
 };
 
-// --- QUIZ GENERATOR ---
-const rubricItemSchema = { type: Type.OBJECT, properties: { criteria: { type: Type.STRING }, points: { type: Type.NUMBER } }, required: ["criteria", "points"] };
-const quizQuestionSchema = { type: Type.OBJECT, properties: { questionText: { type: Type.STRING }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, correctAnswer: { type: Type.STRING } }, required: ["questionText", "correctAnswer"] };
-const quizSectionSchema = { type: Type.OBJECT, properties: { instructions: { type: Type.STRING }, questions: { type: Type.ARRAY, items: quizQuestionSchema } }, required: ["instructions", "questions"] };
-const quizContentSchema = {
+const generatedQuizQuestionSchema = {
+    type: Type.OBJECT,
+    properties: {
+        questionText: { type: Type.STRING },
+        options: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Only for Multiple Choice. Should have 4 options." },
+        correctAnswer: { type: Type.STRING }
+    },
+    required: ["questionText", "correctAnswer"]
+};
+const generatedQuizSectionSchema = {
+    type: Type.OBJECT,
+    properties: {
+        instructions: { type: Type.STRING },
+        questions: { type: Type.ARRAY, items: generatedQuizQuestionSchema }
+    },
+    required: ["instructions", "questions"]
+};
+const dlpRubricItemSchema = {
+    type: Type.OBJECT,
+    properties: {
+        criteria: { type: Type.STRING },
+        points: { type: Type.NUMBER }
+    },
+    required: ["criteria", "points"]
+};
+const tosItemSchema = {
+    type: Type.OBJECT,
+    properties: {
+        objective: { type: Type.STRING },
+        cognitiveLevel: { type: Type.STRING },
+        itemNumbers: { type: Type.STRING }
+    },
+    required: ["objective", "cognitiveLevel", "itemNumbers"]
+};
+const quizActivitySchema = {
+    type: Type.OBJECT,
+    properties: {
+        activityName: { type: Type.STRING },
+        activityInstructions: { type: Type.STRING },
+        rubric: { type: Type.ARRAY, items: dlpRubricItemSchema }
+    },
+    required: ["activityName", "activityInstructions"]
+};
+const generatedQuizSchema = {
     type: Type.OBJECT,
     properties: {
         quizTitle: { type: Type.STRING },
-        tableOfSpecifications: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { objective: { type: Type.STRING }, cognitiveLevel: { type: Type.STRING }, itemNumbers: { type: Type.STRING } }, required: ["objective", "cognitiveLevel", "itemNumbers"] } },
+        tableOfSpecifications: { type: Type.ARRAY, items: tosItemSchema },
         questionsByType: {
             type: Type.OBJECT,
             properties: {
-                'Multiple Choice': quizSectionSchema,
-                'True or False': quizSectionSchema,
-                'Identification': quizSectionSchema,
-            },
+                'Multiple Choice': { ...generatedQuizSectionSchema, description: "Multiple choice questions section" },
+                'True or False': { ...generatedQuizSectionSchema, description: "True or False questions section" },
+                'Identification': { ...generatedQuizSectionSchema, description: "Identification questions section" }
+            }
         },
         activities: {
             type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    activityName: { type: Type.STRING },
-                    activityInstructions: { type: Type.STRING },
-                },
-                required: ["activityName", "activityInstructions"],
-            },
-        },
+            items: quizActivitySchema
+        }
     },
-    required: ["quizTitle", "questionsByType", "activities"],
+    required: ["quizTitle", "questionsByType", "activities"]
 };
 
-
-export const generateQuizContent = async (details: { topic: string; numQuestions: number; quizTypes: QuizType[]; subject: string; gradeLevel: string; }): Promise<GeneratedQuiz> => {
+export const generateQuizContent = async (options: { topic: string; numQuestions: number; quizTypes: QuizType[]; subject: string; gradeLevel: string; }): Promise<GeneratedQuiz> => {
+    const { topic, numQuestions, quizTypes, subject, gradeLevel } = options;
     const model = "gemini-2.5-pro";
-    const prompt = `Generate a comprehensive quiz for a Grade ${details.gradeLevel} ${details.subject} class on the topic: "${details.topic}".
-    
-    The quiz must include:
-    1. A suitable title for the quiz.
-    2. A simple Table of Specifications (TOS) linking objectives to item numbers.
-    3. The following quiz types: ${details.quizTypes.join(', ')}.
-    4. Exactly ${details.numQuestions} questions for EACH specified quiz type.
-    5. Clear instructions for each section.
-    6. For Multiple Choice questions, provide 4 options.
-    7. For all question types, provide the correct answer.
-    8. Two creative, performance-based activities related to the topic. Do not generate rubrics for them yet.
-
-    Return the result as a single JSON object.`;
+    const prompt = `
+        Create a quiz for a Grade ${gradeLevel} ${subject} class on the topic: "${topic}".
+        
+        The quiz should include:
+        1. A suitable title.
+        2. A Table of Specifications (TOS) if applicable.
+        3. ${numQuestions} questions for each of the following formats: ${quizTypes.join(', ')}.
+        4. For Multiple Choice, provide 4 options.
+        5. For Identification, the answer should be a single word or short phrase.
+        6. For True or False, the answer is "True" or "False".
+        7. One or two creative, engaging performance task activities related to the topic. Do not generate a rubric for these activities initially.
+        8. Adhere strictly to the JSON schema.
+    `;
     try {
         const response = await callApiProxy({
-            model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: quizContentSchema,
-                safetySettings,
-            },
-            systemInstruction: efficientGenerationSystemInstruction,
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: generatedQuizSchema, safetySettings },
+            systemInstruction: efficientGenerationSystemInstruction
         });
         return parseJsonFromAiResponse<GeneratedQuiz>(response.text);
     } catch (error) {
@@ -416,25 +471,21 @@ export const generateQuizContent = async (details: { topic: string; numQuestions
     }
 };
 
-export const generateRubricForActivity = async (details: { activityName: string, activityInstructions: string, totalPoints: number }): Promise<DlpRubricItem[]> => {
+const rubricSchema = { type: Type.ARRAY, items: dlpRubricItemSchema };
+export const generateRubricForActivity = async (options: { activityName: string; activityInstructions: string; totalPoints: number; }): Promise<DlpRubricItem[]> => {
     const model = "gemini-2.5-flash";
-    const prompt = `Create a simple scoring rubric for the following activity. The total score must add up to exactly ${details.totalPoints} points.
-    
-    Activity Name: ${details.activityName}
-    Instructions: ${details.activityInstructions}
-    
-    Return as a JSON array where each item has "criteria" and "points".`;
-
+    const prompt = `
+        Create a simple rubric for the following activity. The total points for the rubric must sum up to exactly ${options.totalPoints}.
+        - Activity Name: ${options.activityName}
+        - Instructions: ${options.activityInstructions}
+        
+        Return a JSON array of criteria and points.
+    `;
     try {
         const response = await callApiProxy({
-            model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: { type: Type.ARRAY, items: rubricItemSchema },
-                safetySettings,
-            },
-            systemInstruction: efficientGenerationSystemInstruction,
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: rubricSchema, safetySettings },
+            systemInstruction: efficientGenerationSystemInstruction
         });
         return parseJsonFromAiResponse<DlpRubricItem[]>(response.text);
     } catch (error) {
@@ -442,36 +493,28 @@ export const generateRubricForActivity = async (details: { activityName: string,
     }
 };
 
-// --- DLL (WEEKLY PLAN) GENERATOR ---
 const dllDailyEntrySchema = { type: Type.OBJECT, properties: { monday: { type: Type.STRING }, tuesday: { type: Type.STRING }, wednesday: { type: Type.STRING }, thursday: { type: Type.STRING }, friday: { type: Type.STRING } }, required: ["monday", "tuesday", "wednesday", "thursday", "friday"] };
-const dllProcedureSchema = { type: Type.OBJECT, properties: { procedure: { type: Type.STRING }, ...dllDailyEntrySchema.properties }, required: ["procedure", ...Object.keys(dllDailyEntrySchema.properties)] };
+const dllProcedureSchema = { type: Type.OBJECT, properties: { procedure: { type: Type.STRING }, ...dllDailyEntrySchema.properties }, required: ["procedure", "monday", "tuesday", "wednesday", "thursday", "friday"] };
 const dllContentSchema = { type: Type.OBJECT, properties: { contentStandard: { type: Type.STRING }, performanceStandard: { type: Type.STRING }, learningCompetencies: dllDailyEntrySchema, content: { type: Type.STRING }, learningResources: { type: Type.OBJECT, properties: { teacherGuidePages: dllDailyEntrySchema, learnerMaterialsPages: dllDailyEntrySchema, textbookPages: dllDailyEntrySchema, additionalMaterials: dllDailyEntrySchema, otherResources: dllDailyEntrySchema }, required: ["teacherGuidePages", "learnerMaterialsPages", "textbookPages", "additionalMaterials", "otherResources"] }, procedures: { type: Type.ARRAY, items: dllProcedureSchema }, remarks: { type: Type.STRING }, reflection: { type: Type.ARRAY, items: dllProcedureSchema } }, required: ["contentStandard", "performanceStandard", "learningCompetencies", "content", "learningResources", "procedures", "remarks", "reflection"] };
-
-export const generateDllContent = async (details: { subject: string; gradeLevel: string; weeklyTopic: string; contentStandard: string; performanceStandard: string; dllFormat: string; language: 'English' | 'Filipino' }): Promise<DllContent> => {
+export const generateDllContent = async (options: { subject: string; gradeLevel: string; weeklyTopic?: string; contentStandard?: string; performanceStandard?: string; dllFormat: string; language: 'English' | 'Filipino' }): Promise<DllContent> => {
+    const { subject, gradeLevel, weeklyTopic, contentStandard, performanceStandard, dllFormat, language } = options;
     const model = "gemini-2.5-pro";
-    const prompt = `Generate a complete Daily Lesson Log (DLL) for a Grade ${details.gradeLevel} ${details.subject} class for one week.
-    - Topic for the week: ${details.weeklyTopic || `(Suggest a relevant topic for this grade level and subject)`}
-    - Content Standard: ${details.contentStandard || `(Generate an appropriate standard)`}
-    - Performance Standard: ${details.performanceStandard || `(Generate an appropriate standard)`}
-    - Language: ${details.language}
-    - DLL Format: ${details.dllFormat}
+    const prompt = `
+        Create a complete Daily Lesson Log (DLL) in ${language} for a Grade ${gradeLevel} ${subject} class for one week.
+        - Weekly Topic: ${weeklyTopic || '(Suggest a relevant topic based on the subject and grade)'}
+        - Content Standard: ${contentStandard || '(Generate a relevant standard)'}
+        - Performance Standard: ${performanceStandard || '(Generate a relevant standard)'}
+        - DLL Format: ${dllFormat}
 
-    Instructions:
-    1.  Create daily learning competencies/objectives for Monday to Friday.
-    2.  Fill in all sections (Content, Learning Resources, Procedures, Remarks, Reflection) with detailed, relevant, and coherent content for each day of the week.
-    3.  The procedures must be well-structured and developmentally appropriate.
-    4.  Return the output as a single JSON object.`;
-
+        Generate content for all sections: Objectives (Learning Competencies), Content, Learning Resources, Procedures, Remarks, and Reflection for Monday to Friday.
+        Procedures should be detailed and follow the specified format.
+        Return a JSON object adhering to the schema.
+    `;
     try {
         const response = await callApiProxy({
-            model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: dllContentSchema,
-                safetySettings,
-            },
-            systemInstruction: "You are an expert DepEd teacher creating a detailed weekly lesson log in JSON format."
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: dllContentSchema, safetySettings },
+            systemInstruction: efficientGenerationSystemInstruction
         });
         return parseJsonFromAiResponse<DllContent>(response.text);
     } catch (error) {
@@ -479,38 +522,29 @@ export const generateDllContent = async (details: { subject: string; gradeLevel:
     }
 };
 
-// --- LEARNING ACTIVITY SHEET (LAS) GENERATOR ---
 const lasQuestionSchema = { type: Type.OBJECT, properties: { questionText: { type: Type.STRING }, type: { type: Type.STRING, enum: ['Identification', 'Essay', 'Problem-solving', 'Multiple Choice'] }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, answer: { type: Type.STRING } }, required: ["questionText", "type"] };
-const lasActivitySchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, instructions: { type: Type.STRING }, questions: { type: Type.ARRAY, items: lasQuestionSchema }, rubric: { type: Type.ARRAY, items: rubricItemSchema } }, required: ["title", "instructions"] };
+const lasActivitySchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, instructions: { type: Type.STRING }, questions: { type: Type.ARRAY, items: lasQuestionSchema }, rubric: { type: Type.ARRAY, items: dlpRubricItemSchema } }, required: ["title", "instructions"] };
 const lasContentSchema = { type: Type.OBJECT, properties: { activityTitle: { type: Type.STRING }, learningTarget: { type: Type.STRING }, references: { type: Type.STRING }, conceptNotes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, content: { type: Type.STRING } }, required: ["title", "content"] } }, activities: { type: Type.ARRAY, items: lasActivitySchema } }, required: ["activityTitle", "learningTarget", "references", "conceptNotes", "activities"] };
-
-export const generateLearningActivitySheet = async (details: { subject: string, gradeLevel: string, learningCompetency: string, lessonObjective: string, activityType: string, language: 'English' | 'Filipino' }): Promise<LearningActivitySheet> => {
+export const generateLearningActivitySheet = async (options: { subject: string; gradeLevel: string; learningCompetency: string; lessonObjective: string; activityType: string; language: 'English' | 'Filipino' }): Promise<LearningActivitySheet> => {
+    const { subject, gradeLevel, learningCompetency, lessonObjective, activityType, language } = options;
     const model = "gemini-2.5-pro";
-    const prompt = `Create a comprehensive, DLP-style Learning Activity Sheet (LAS) in ${details.language}.
-    
-    Details:
-    - Subject: Grade ${details.gradeLevel} ${details.subject}
-    - Learning Competency: ${details.learningCompetency}
-    - Learning Objective: ${details.lessonObjective}
-    - Activity Focus: ${details.activityType}
+    const prompt = `
+        Create a DLP-style Learning Activity Sheet (LAS) in ${language} for a Grade ${gradeLevel} ${subject} class.
+        - Learning Competency: ${learningCompetency}
+        - Lesson Objective: ${lessonObjective}
+        - Activity Focus: ${activityType}
 
-    Instructions:
-    1.  Create a main 'Activity Title' for the LAS.
-    2.  Formulate a clear 'Learning Target' based on the objective.
-    3.  Provide plausible 'References'.
-    4.  Write comprehensive 'Concept Notes' with clear explanations and examples about the topic.
-    5.  Design at least two distinct 'Activities' that align with the activity focus. Include questions (with answers for checkable types) and a scoring rubric for performance-based tasks.
-    6.  Return as a single JSON object.`;
+        Generate all parts: Title, Learning Target, References, Concept Notes, and Activities.
+        - Concept Notes should be clear and concise.
+        - Activities should be engaging and aligned with the objective and focus. Include questions or performance tasks.
+        - For performance tasks, suggest a simple rubric.
+        Return a JSON object adhering to the schema.
+    `;
     try {
         const response = await callApiProxy({
-            model,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: lasContentSchema,
-                safetySettings,
-            },
-            systemInstruction: efficientGenerationSystemInstruction,
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: lasContentSchema, safetySettings },
+            systemInstruction: efficientGenerationSystemInstruction
         });
         return parseJsonFromAiResponse<LearningActivitySheet>(response.text);
     } catch (error) {
@@ -518,21 +552,27 @@ export const generateLearningActivitySheet = async (details: { subject: string, 
     }
 };
 
-// --- EXAM GENERATOR ---
-// This will be added in a future update as per the user's phased request.
-// The types have been added to types.ts and the UI is in LessonPlanners.tsx.
-// We just need to implement the service function here.
-// For now, returning a placeholder to avoid breaking the app.
-export const generateExamContent = async (objectives: ExamObjective[], details: { subject: string, gradeLevel: string }): Promise<GeneratedExam> => {
-    // Placeholder - to be implemented fully later.
-    console.warn("generateExamContent is not yet fully implemented.");
-    return Promise.resolve({
-        title: "Generated Exam (Placeholder)",
-        tableOfSpecifications: [],
-        questions: [],
-        subject: details.subject,
-        gradeLevel: details.gradeLevel,
-    });
-};
+const generatedExamTosItemSchema = { type: Type.OBJECT, properties: { objective: { type: Type.STRING }, daysTaught: { type: Type.NUMBER }, percentage: { type: Type.STRING }, numItems: { type: Type.NUMBER }, itemPlacement: { type: Type.STRING }, remembering: { type: Type.STRING }, understanding: { type: Type.STRING }, applying: { type: Type.STRING }, analyzing: { type: Type.STRING }, evaluating: { type: Type.STRING }, creating: { type: Type.STRING } }, required: ["objective", "daysTaught", "percentage", "numItems", "itemPlacement", "remembering", "understanding", "applying", "analyzing", "evaluating", "creating"] };
+const generatedExamSchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, tableOfSpecifications: { type: Type.ARRAY, items: generatedExamTosItemSchema }, questions: { type: Type.ARRAY, items: generatedQuizQuestionSchema }, subject: { type: Type.STRING }, gradeLevel: { type: Type.STRING } }, required: ["title", "tableOfSpecifications", "questions", "subject", "gradeLevel"] };
+export const generateExam = async (options: { objectives: { text: string; days: string }[]; subject: string; gradeLevel: string; }): Promise<GeneratedExam> => {
+    const { objectives, subject, gradeLevel } = options;
+    const model = "gemini-2.5-pro";
+    const prompt = `
+        Generate a complete exam for ${subject} Grade ${gradeLevel}.
+        1. Create a detailed Table of Specifications (TOS) based on these objectives and days taught: ${JSON.stringify(objectives)}. The TOS must include columns for objective, days, percentage, number of items, item placement, and a breakdown across Bloom's Taxonomy levels (Remembering, Understanding, Applying, Analyzing, Evaluating, Creating).
+        2. Generate multiple-choice questions based on the TOS, ensuring correct item placement and cognitive level. Each question should have 4 options.
+        3. Create a title for the exam.
+        4. Return a JSON object adhering to the schema.
+    `;
 
-// --- END OF MISSING FUNCTIONS ---
+    try {
+        const response = await callApiProxy({
+            model, contents: prompt,
+            config: { responseMimeType: "application/json", responseSchema: generatedExamSchema, safetySettings },
+            systemInstruction: efficientGenerationSystemInstruction
+        });
+        return parseJsonFromAiResponse<GeneratedExam>(response.text);
+    } catch (error) {
+        throw handleGeminiError(error, 'generateExam');
+    }
+};
