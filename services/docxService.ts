@@ -811,6 +811,32 @@ class DocxService {
         const secondLogo = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60);
         const isFilipino = dlpForm.language === 'Filipino';
     
+        const getColorForGrade = (gradeLevel: string): string => {
+            const grade = (gradeLevel || '').toString().toLowerCase().replace('grade', '').trim();
+            switch (grade) {
+                case '7': return 'E2EFDA'; // Light Green
+                case '8': return 'FFF2CC'; // Light Yellow
+                case '9': return 'F8CBAD'; // Light Red
+                case '10': return 'DDEBF7'; // Light Blue
+                default: return 'D9D9D9'; // Default light gray
+            }
+        };
+        const headerColor = getColorForGrade(dlpForm.gradeLevel);
+        
+        const createHeading = (text: string) => new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [new Paragraph({ text, run: { bold: true, font: "Times New Roman", size: 24 } })],
+                            shading: { type: ShadingType.CLEAR, fill: headerColor },
+                        })
+                    ]
+                })
+            ],
+        });
+
         const boldRun = (text: string): TextRun => new TextRun({ text, bold: true, font: "Times New Roman", size: 22 });
         const normalRun = (text: string): TextRun => new TextRun({ text, font: "Times New Roman", size: 22 });
     
@@ -866,21 +892,22 @@ class DocxService {
                 properties: { page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
                 children: [
                     headerTable,
-                    new Paragraph({ text: isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES', heading: HeadingLevel.HEADING_1, spacing: { before: 200 } }),
+                    new Paragraph({ text: "" }),
+                    createHeading(isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'A. Pamantayang Pangnilalaman: ' : 'A. Content Standard: '), normalRun(dlpContent.contentStandard)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'B. Pamantayan sa Pagganap: ' : 'B. Performance Standard: '), normalRun(dlpContent.performanceStandard)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'C. Kasanayan sa Pagkatuto: ' : 'C. Learning Competency: '), normalRun(dlpForm.learningCompetency)] }),
                     new Paragraph({ text: isFilipino ? 'Sa pagtatapos ng aralin, ang mga mag-aaral ay inaasahang:' : 'At the end of the lesson, the learners should be able to:', spacing: { before: 100 } }),
                     new Paragraph({ text: dlpForm.lessonObjective, bullet: { level: 0 } }),
-
-                    new Paragraph({ text: isFilipino ? 'II. NILALAMAN' : 'II. CONTENT', heading: HeadingLevel.HEADING_1, spacing: { before: 200 } }),
+                    new Paragraph({ text: "" }),
+                    createHeading(isFilipino ? 'II. NILALAMAN' : 'II. CONTENT'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'Paksa: ' : 'Topic: '), normalRun(dlpContent.topic)] }),
-
-                    new Paragraph({ text: isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES', heading: HeadingLevel.HEADING_1, spacing: { before: 200 } }),
+                    new Paragraph({ text: "" }),
+                    createHeading(isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'A. Sanggunian: ' : 'A. References: '), normalRun(dlpContent.learningReferences)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'B. Kagamitan: ' : 'B. Materials: '), normalRun(dlpContent.learningMaterials)] }),
-                    
-                    new Paragraph({ text: isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURE', heading: HeadingLevel.HEADING_1, spacing: { before: 200 } }),
+                    new Paragraph({ text: "" }),
+                    createHeading(isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURE'),
                     new Table({
                         width: { size: 100, type: WidthType.PERCENTAGE },
                         columnWidths: [25, 45, 30],

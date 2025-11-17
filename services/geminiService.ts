@@ -346,18 +346,22 @@ export const generateDlpContent = async (options: {
         - Specific Lesson Objective: ${lessonObjective}
         - Previous Lesson (for review context): ${previousLesson}
         - Teacher's Position (for PPST alignment): ${teacherPosition}
-        - DLP Format: ${dlpFormat} (Use this format for the procedures. E.g., for 4As: Activity, Analysis, Abstraction, Application)
+        - DLP Format: ${dlpFormat}
 
         Instructions:
-        1.  Generate all sections of the DLP: Content Standard, Performance Standard, Topic, Learning References, Learning Materials, Procedures, and Evaluation Questions.
-        2.  For the "Procedures" section:
-            - Create a sequence of activities based on the selected DLP Format (${dlpFormat}).
-            - For each procedure step (e.g., Motivation, Activity, Analysis), provide a creative and descriptive **title**. Do not use generic labels like "Teacher's Activity" or "Student's Activity". For example, use titles like "Activity #1: The Word Maze", "Group Discussion: Unpacking the Poem", or "Motivation: Picture Analysis".
+        1.  **Adhere strictly to the DLP Format for procedures:**
+            - If format is "Standard DepEd", the procedure titles MUST follow this sequence: Reviewing Previous Lesson, Establishing a purpose for the lesson, Presenting examples/instances, Discussing new concepts, Developing mastery (Leads to Formative Assessment), Finding practical applications, Making generalizations and abstractions, Evaluating learning, Additional activities for application or remediation.
+            - If format is "4As", the procedure titles MUST be exactly: Activity, Analysis, Abstraction, Application.
+            - If format is "5Es", the procedure titles MUST be exactly: Engage, Explore, Explain, Elaborate, Evaluate.
+            - If format is "Explicit Instruction", the procedure titles MUST be exactly: "I do" (Modeling), "We do" (Guided Practice), "You do" (Independent Practice).
+        2.  Generate all other sections: Content Standard, Performance Standard, Topic, Learning References, Learning Materials, Procedures, and Evaluation Questions.
+        3.  For each procedure step:
+            - Use the exact titles as specified in Instruction 1. You may add a creative, descriptive subtitle within the 'content' field if needed.
             - The 'content' for each procedure should detail both the teacher's actions/instructions and the expected student activities. Use markdown for formatting: use **bold letters** for emphasis and *italics* for special notes. Do not use asterisks for lists or any other purpose.
             - Align each procedure with a relevant PPST indicator based on the teacher's position (${teacherPosition}).
-        3.  Create 5 multiple-choice evaluation questions with 4 options each, and provide the correct answer.
-        4.  For "remarksContent", provide an empty string "" as this section is for the teacher's handwritten notes after the lesson.
-        5.  Strictly return the output as a JSON object adhering to the provided schema. Do not add any extra text or explanations.
+        4.  Create 5 multiple-choice evaluation questions with 4 options each, and provide the correct answer.
+        5.  For "remarksContent", provide an empty string "" as this section is for the teacher's handwritten notes after the lesson.
+        6.  Strictly return the output as a JSON object adhering to the provided schema. Do not add any extra text or explanations.
     `;
 
     try {
