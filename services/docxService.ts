@@ -466,8 +466,10 @@ class DocxService {
         new Paragraph({
             children: [
                 new TextRun({ text: "Name: __________________________________________________________________", font: fontStyle, size: fontSize }),
-                new TextRun({ text: "Score: ____________", font: fontStyle, size: fontSize }).break(),
+                new TextRun({ break: 1 }),
                 new TextRun({ text: "Grade & Section: _________________________________________________________", font: fontStyle, size: fontSize }),
+                new TextRun({ break: 1 }),
+                new TextRun({ text: "Score: ____________", font: fontStyle, size: fontSize }),
             ],
         }),
         new Paragraph({ text: "" }),
@@ -642,8 +644,9 @@ class DocxService {
         // This is a complex form. The implementation replicates the structure seen in SF2.tsx
         const monthName = currentUTCDate.toLocaleString('default', { month: 'long', timeZone: 'UTC' });
         const year = currentUTCDate.getUTCFullYear();
-        const studentInfo = students[0] || {};
-        const sectionText = (studentInfo.gradeLevel && studentInfo.section) ? `${studentInfo.gradeLevel} - ${studentInfo.section}` : 'Class';
+// FIX: Changed `students[0] || {}` to `students[0]` and used optional chaining `?.` to prevent errors when the students array is empty.
+        const studentInfo = students[0];
+        const sectionText = (studentInfo?.gradeLevel && studentInfo?.section) ? `${studentInfo.gradeLevel} - ${studentInfo.section}` : 'Class';
 
         // ... (Full implementation would be very long, involving creating the full SF2 table structure)
         // For brevity, we'll create a simplified version. A full implementation would mirror excelService.
