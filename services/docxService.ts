@@ -806,6 +806,34 @@ class DocxService {
         this.downloadBlob(blob, `Groups_${data.topic}.docx`);
     }
     
+    private getHardcodedReflectionTable(isFilipino: boolean): Table {
+        const questions = [
+            { q: isFilipino ? 'A. Bilang ng mag-aaral na nakakuha ng 80% sa pagtataya' : 'A. No. of learners who earned 80% in the evaluation' },
+            { q: isFilipino ? 'B. Bilang ng mag-aaral na nangangailangan ng remediation na nakakuha ng mababa sa 80%' : 'B. No. of learners who require additional activities for remediation who score below 80%' },
+            { q: isFilipino ? 'C. Nakatulong ba ang remedial? Bilang ng mag-aaral na nakaunawa sa aralin.' : 'C. Did the remedial lessons work? No. of learners who have caught up with the lessons.' },
+            { q: isFilipino ? 'D. Bilang ng mga mag-aaral na magpapatuloy sa remediation.' : 'D. No. of learners who continue to require remediation' },
+            { q: isFilipino ? 'E. Alin sa mga istratehiyang pagtuturo nakatulong ng lubos? Paano ito nakatulong?' : 'E. Which of my teaching strategies work well? Why did this work?' },
+            { q: isFilipino ? 'F. Anong suliranin ang aking naranasan na solusyunan sa tulong ang aking punungguro at superbisor?' : 'F. What difficulties did I encounter which my principal or supervisor can help me solve?' },
+            { q: isFilipino ? 'G. Anong kagamitang panturo ang aking nadibuho na nais kong ibahagi sa mga kapwa ko guro.' : 'G. What innovation or localized materials did I use / discover which I wish to share with other teachers.' },
+        ];
+        
+        return new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [50, 50],
+            rows: questions.map(item => new TableRow({
+                children: [
+                    new TableCell({
+                        children: [new Paragraph({ text: item.q })],
+                        verticalAlign: VerticalAlign.CENTER,
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("")], // Empty cell for teacher's notes
+                    })
+                ]
+            }))
+        });
+    }
+
     public async generateDlpDocx(dlpForm: any, dlpContent: DlpContent, _unused: string, settings: SchoolSettings): Promise<void> {
         const schoolLogo = this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 60, 60);
         const secondLogo = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60);
@@ -929,6 +957,65 @@ class DocxService {
                             }))
                         ]
                     }),
+                    new Paragraph({ text: "" }),
+                    createHeading(isFilipino ? 'V. PAGTATAYA' : 'V. EVALUATION'),
+                    ...(dlpContent.evaluationQuestions || []).flatMap((q, index) => [
+                        new Paragraph({
+                            children: [new TextRun({ text: `${index + 1}. ${q.question}` })],
+                            numbering: { reference: "dlp-list", level: 0 },
+                        }),
+                        ...(q.options || []).map((opt, optIndex) => new Paragraph({
+                            children: [new TextRun({ text: `${String.fromCharCode(97 + optIndex)}. ${opt}` })],
+                            indent: { left: 720 },
+                        }))
+                    ]),
+
+                    new Paragraph({ text: "", pageBreakBefore: true }),
+                    createHeading(isFilipino ? 'VI. MGA TALA' : 'VI. REMARKS'),
+                    new Paragraph({ text: dlpContent.remarksContent || '', spacing: { after: 400 } }),
+
+                    createHeading(isFilipino ? 'VII. PAGNINILAY' : 'VII. REFLECTION'),
+                    this.getHardcodedReflectionTable(isFilipino),
+
+                    new Paragraph({ text: "", spacing: { after: 800 } }),
+                    new Table({
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        columnWidths: [33, 34, 33],
+                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
+                        rows: [
+                            new TableRow({
+                                children: [
+                                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inihanda ni:" : "Prepared by:" })] }),
+                                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Sinuri ni:" : "Checked by:" })] }),
+                                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inaprubahan ni:" : "Approved by:" })] }),
+                                ]
+                            }),
+                            new TableRow({
+                                children: [
+                                    new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                    new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                    new TableCell({ children: [new Paragraph({ text: "" })] }),
+                                ],
+                                height: { value: 1000, rule: HeightRule.ATLEAST }
+                            }),
+                            new TableRow({
+                                children: [
+                                    new TableCell({ children: [
+                                        new Paragraph({ text: dlpForm.preparedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }),
+                                        new Paragraph({ text: dlpForm.preparedByDesignation, alignment: AlignmentType.CENTER })
+                                    ]}),
+                                    new TableCell({ children: [
+                                        new Paragraph({ text: dlpForm.checkedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }),
+                                        new Paragraph({ text: dlpForm.checkedByDesignation, alignment: AlignmentType.CENTER })
+                                    ]}),
+                                    new TableCell({ children: [
+                                        new Paragraph({ text: dlpForm.approvedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }),
+                                        new Paragraph({ text: dlpForm.approvedByDesignation, alignment: AlignmentType.CENTER })
+                                    ]}),
+                                ]
+                            })
+                        ]
+                    })
                 ],
             }]
         });
