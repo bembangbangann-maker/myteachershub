@@ -185,7 +185,6 @@ const OnScreenTutorials: React.FC = () => {
     
     const handlePrevStep = () => {
         if (currentStep > 0) {
-// FIX: The previous step logic was incrementing instead of decrementing.
             setCurrentStep(prev => prev - 1);
         }
     };

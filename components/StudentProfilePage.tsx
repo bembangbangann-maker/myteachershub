@@ -217,7 +217,7 @@ const StudentProfilePage: React.FC = () => {
                                 <h3 className="text-3xl font-bold text-base-content">{student.firstName} {student.lastName}</h3>
                                 <p className="text-sm text-base-content/70">LRN: {student.lrn || 'N/A'} | Grade {student.gradeLevel || 'N/A'} - {student.section || 'N/A'}</p>
                             </div>
-                            <div className="flex items-center gap-2 print-hide flex-wrap">
+                            <div className="flex items-center gap-2 print-hide flex-wrap justify-end">
                                 <Link to="/students" className="flex items-center gap-2 bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg transition-colors">
                                     <UsersIcon className="w-5 h-5" /> Back to Roster
                                 </Link>

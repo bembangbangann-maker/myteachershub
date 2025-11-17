@@ -366,13 +366,13 @@ const Dashboard: React.FC = () => {
                             ? `Welcome back, ${teacherFirstName}!`
                             : 'Welcome back, Teacher!'}
                     </h1>
-                    <p className="text-base-content mt-1">Here's your classroom at a glance.</p>
+                    <p className="text-base-content mt-1 md:text-lg">Here's your classroom at a glance.</p>
                 </div>
 
                 {timeOfDayMessage && (
                     <div className="bg-info/10 border-l-4 border-info text-info p-4 mb-8 rounded-r-lg shadow-lg flex items-center gap-4">
                         <ClockIcon className="w-6 h-6 flex-shrink-0" />
-                        <p className="font-semibold">{timeOfDayMessage}</p>
+                        <p className="font-semibold text-sm md:text-base">{timeOfDayMessage}</p>
                     </div>
                 )}
                 
@@ -381,7 +381,7 @@ const Dashboard: React.FC = () => {
                         <div className="py-1"><LightbulbIcon className="w-8 h-8 mr-4 text-primary"/></div>
                         <div>
                             <p className="font-bold text-lg text-base-content">Pro Tip: Always Back Up Your Data!</p>
-                            <p className="text-base text-base-content">
+                            <p className="text-sm md:text-base text-base-content">
                                 Your data is saved locally in your browser. To prevent accidental data loss, please 
                                 <Link to="/settings" className="font-semibold underline hover:text-primary-focus transition-colors"> download a backup file </Link> 
                                 regularly and save it in a safe place.

@@ -360,11 +360,11 @@ const ClassRecordGrid: React.FC<ClassRecordGridProps> = ({ students, batchId, su
         if (!record) return null;
 
         return (
-            <tr key={student.id} className={`text-center ${student.gender === 'Male' ? 'male-student-row' : 'female-student-row'}`}>
-                <td className="border border-base-300 p-1 text-center">{index + 1}</td>
-                <td className="text-left border border-base-300 p-1">
+            <tr key={student.id} className={`text-center hover:bg-base-300/50 ${student.gender === 'Male' ? 'male-student-row' : 'female-student-row'}`}>
+                <td className="sticky left-0 z-10 bg-base-200 hover:bg-base-300/50 border border-base-300 p-1 text-center">{index + 1}</td>
+                <td className="sticky left-[45px] z-10 bg-base-200 hover:bg-base-300/50 text-left border border-base-300 p-1">
                      <div className="flex justify-between items-center">
-                        <span>{`${student.lastName}, ${student.firstName}${student.middleName && student.middleName.trim() ? ` ${student.middleName.trim().charAt(0)}.` : ''}`}</span>
+                        <span className="truncate">{`${student.lastName}, ${student.firstName}${student.middleName && student.middleName.trim() ? ` ${student.middleName.trim().charAt(0)}.` : ''}`}</span>
                         <button onClick={() => setStudentToDelete(student)} title="Delete Student" className="text-gray-500 hover:text-error p-1 rounded-full transition-colors opacity-25 hover:opacity-100 flex-shrink-0 ml-2 print-hide">
                             <TrashIcon className="w-4 h-4"/>
                         </button>
@@ -450,10 +450,10 @@ const ClassRecordGrid: React.FC<ClassRecordGridProps> = ({ students, batchId, su
             <div className="overflow-x-auto">
                 <ClassRecordHeader schoolSettings={settings} />
                  <table className="w-full border-collapse text-[10px] border border-base-300 mt-2">
-                    <thead className="whitespace-nowrap">
+                    <thead className="whitespace-nowrap sticky top-0 z-20">
                         <tr className="text-left font-bold">
-                          <th className="p-1 border border-base-300 align-middle print-hide-col" colSpan={2}>{quarterText}</th>
-                          <th className="p-1 border border-base-300 align-middle" colSpan={13}>
+                          <th className="p-1 border border-base-300 align-middle print-hide-col bg-base-200" colSpan={2}>{quarterText}</th>
+                          <th className="p-1 border border-base-300 align-middle bg-base-200" colSpan={13}>
                             <div className="flex items-center">
                                 <span className="mr-2">GRADE & SECTION:</span>
                                 <select
@@ -470,18 +470,18 @@ const ClassRecordGrid: React.FC<ClassRecordGridProps> = ({ students, batchId, su
                                 </select>
                             </div>
                           </th>
-                          <th className="p-1 border border-base-300 align-middle" colSpan={13}>TEACHER: {settings.teacherName}</th>
-                          <th className="p-1 border border-base-300 align-middle" colSpan={5}>SUBJECT: {subject}</th>
+                          <th className="p-1 border border-base-300 align-middle bg-base-200" colSpan={13}>TEACHER: {settings.teacherName}</th>
+                          <th className="p-1 border border-base-300 align-middle bg-base-200" colSpan={5}>SUBJECT: {subject}</th>
                         </tr>
                         <tr className="text-center font-bold">
-                            <th rowSpan={2} colSpan={2} className="border border-base-300 p-1 align-middle print-category-header">LEARNERS' NAMES</th>
-                            <th colSpan={13} className="border border-base-300 p-1 print-category-header">WRITTEN WORKS ({recordSettings.wwPercentage * 100}%)</th>
-                            <th colSpan={13} className="border border-base-300 p-1 print-category-header">PERFORMANCE TASKS ({recordSettings.ptPercentage * 100}%)</th>
-                            <th colSpan={3} className="border border-base-300 p-1 print-category-header">QUARTERLY ASSESSMENT ({recordSettings.qaPercentage * 100}%)</th>
-                            <th rowSpan={2} className="border border-base-300 p-1 align-middle text-[9px] leading-tight print-final-grade-header">Initial Grade</th>
-                            <th rowSpan={2} className="border border-base-300 p-1 align-middle text-[9px] leading-tight print-final-grade-header">Quarterly Grade</th>
+                            <th rowSpan={2} colSpan={2} className="sticky left-0 bg-base-300 z-30 border border-base-300 p-1 align-middle print-category-header">LEARNERS' NAMES</th>
+                            <th colSpan={13} className="border border-base-300 p-1 print-category-header bg-base-300">WRITTEN WORKS ({recordSettings.wwPercentage * 100}%)</th>
+                            <th colSpan={13} className="border border-base-300 p-1 print-category-header bg-base-300">PERFORMANCE TASKS ({recordSettings.ptPercentage * 100}%)</th>
+                            <th colSpan={3} className="border border-base-300 p-1 print-category-header bg-base-300">QUARTERLY ASSESSMENT ({recordSettings.qaPercentage * 100}%)</th>
+                            <th rowSpan={2} className="border border-base-300 p-1 align-middle text-[9px] leading-tight print-final-grade-header bg-base-300">Initial Grade</th>
+                            <th rowSpan={2} className="border border-base-300 p-1 align-middle text-[9px] leading-tight print-final-grade-header bg-base-300">Quarterly Grade</th>
                         </tr>
-                        <tr className="text-center font-normal print-component-header">
+                        <tr className="text-center font-normal print-component-header bg-base-300">
                             {Array.from({length: 10}).map((_,i) => <th key={`h-ww-${i}`} className="border border-base-300 p-1">{i+1}</th>)}
                             <th className="border border-base-300 p-1">Total</th><th className="border border-base-300 p-1">PS</th><th className="border border-base-300 p-1">WS</th>
                             {Array.from({length: 10}).map((_,i) => <th key={`h-pt-${i}`} className="border border-base-300 p-1">{i+1}</th>)}
@@ -491,7 +491,7 @@ const ClassRecordGrid: React.FC<ClassRecordGridProps> = ({ students, batchId, su
                     </thead>
                     <tbody>
                         <tr className="font-bold text-center bg-base-300">
-                            <td colSpan={2} className="text-left border border-base-300 p-1">HIGHEST POSSIBLE SCORE</td>
+                            <td colSpan={2} className="sticky left-0 bg-base-300 z-20 text-left border border-base-300 p-1">HIGHEST POSSIBLE SCORE</td>
                             {Array.from({length: 10}).map((_,i) => <td key={`hps-ww-${i}`} className="p-0 border border-base-300"><input type="number" value={recordSettings.writtenWorksMax[i] ?? ''} onChange={e => handleMaxScoreChange('WW', i, e.target.value)} className="w-full h-full p-1 bg-transparent text-center outline-none focus:bg-base-100 font-bold"/></td>)}
                             <td className="border border-base-300 p-1">{wwMaxTotal}</td>
                             <td className="border border-base-300 p-1">100.00</td>
@@ -507,11 +507,11 @@ const ClassRecordGrid: React.FC<ClassRecordGridProps> = ({ students, batchId, su
                             <td className="border border-base-300 p-1">100</td>
                         </tr>
                         {/* Male Students */}
-                        <tr className="male-section"><td colSpan={33} className="bg-base-300 font-bold p-1">MALES</td></tr>
+                        <tr className="male-section"><td colSpan={33} className="sticky left-0 bg-base-300 font-bold p-1 z-20">MALES</td></tr>
                         {sortedStudents.males.map((student, index) => renderStudentRow(student, index))}
                         
                         {/* Female Students */}
-                        <tr className="female-section"><td colSpan={33} className="bg-base-300 font-bold p-1">FEMALES</td></tr>
+                        <tr className="female-section"><td colSpan={33} className="sticky left-0 bg-base-300 font-bold p-1 z-20">FEMALES</td></tr>
                         {sortedStudents.females.map((student, index) => renderStudentRow(student, sortedStudents.males.length + index))}
 
                     </tbody>

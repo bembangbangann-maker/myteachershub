@@ -648,7 +648,7 @@ const LessonPlanners: React.FC = () => {
         <div className="min-h-screen">
             <Header title="Lesson Planners" />
             <div className="p-4 md:p-8">
-                 <div className="flex border-b border-base-300 mb-6">
+                 <div className="flex border-b border-base-300 mb-6 flex-wrap">
                     <TabButton label="DLP Generator" icon={<SparklesIcon className="w-4 h-4" />} isActive={activeTab === 'dlp'} onClick={() => setActiveTab('dlp')} />
                     <TabButton label="Weekly Plan Generator" icon={<SparklesIcon className="w-4 h-4" />} isActive={activeTab === 'dll'} onClick={() => setActiveTab('dll')} />
                     <TabButton label="Quiz Generator" icon={<SparklesIcon className="w-4 h-4" />} isActive={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} />
