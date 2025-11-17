@@ -417,6 +417,19 @@ class DocxService {
   public async generateExamDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
     const { title, tableOfSpecifications, questions, subject, gradeLevel, quarter } = exam;
 
+    const getColorForGrade = (gradeLevel: string): string => {
+        const grade = (gradeLevel || '').toString().toLowerCase().replace('grade', '').trim();
+        switch (grade) {
+            case '7': return 'E2EFDA'; // Light Green
+            case '8': return 'FFF2CC'; // Light Yellow
+            case '9': return 'F8CBAD'; // Light Red
+            case '10': return 'DDEBF7'; // Light Blue
+            default: return 'D9D9D9'; // Default light gray
+        }
+    };
+    const headerColor = getColorForGrade(gradeLevel);
+    const tableHeaderCellShading = { shading: { type: ShadingType.CLEAR, fill: headerColor } };
+
     const fontStyle = "Bookman Old Style";
     const fontSize = 22; // 11pt
 
@@ -441,18 +454,18 @@ class DocxService {
             new TableRow({
                 tableHeader: true,
                 children: [
-                    new TableCell({ children: [new Paragraph({ ...tableHeaderStyle, text: "LEARNING COMPETENCIES" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER, width: { size: 30, type: WidthType.PERCENTAGE } }),
-                    new TableCell({ children: [new Paragraph({ ...tableHeaderStyle, text: "NO. OF DAYS TAUGHT" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
-                    new TableCell({ children: [new Paragraph({ ...tableHeaderStyle, text: "PERCENTAGE" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
-                    new TableCell({ children: [new Paragraph({ ...tableHeaderStyle, text: "NO. OF ITEMS" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
-                    new TableCell({ children: [new Paragraph({ ...tableHeaderStyle, text: "COGNITIVE PROCESS DIMENSION" })], columnSpan: 6, verticalAlign: VerticalAlign.CENTER }),
-                    new TableCell({ children: [new Paragraph({ ...tableHeaderStyle, text: "ITEM PLACEMENT" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableHeaderStyle, text: "LEARNING COMPETENCIES" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER, width: { size: 30, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableHeaderStyle, text: "NO. OF DAYS TAUGHT" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableHeaderStyle, text: "PERCENTAGE" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableHeaderStyle, text: "NO. OF ITEMS" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableHeaderStyle, text: "COGNITIVE PROCESS DIMENSION" })], columnSpan: 6, verticalAlign: VerticalAlign.CENTER }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableHeaderStyle, text: "ITEM PLACEMENT" })], rowSpan: 2, verticalAlign: VerticalAlign.CENTER }),
                 ],
             }),
             new TableRow({
                 tableHeader: true,
                 children: [ "Remembering", "Understanding", "Applying", "Analyzing", "Evaluating", "Creating" ].map(label =>
-                    new TableCell({ children: [new Paragraph({ ...tableHeaderStyle, text: label })], verticalAlign: VerticalAlign.CENTER })
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableHeaderStyle, text: label })], verticalAlign: VerticalAlign.CENTER })
                 ),
             }),
             ...tableOfSpecifications.map(item => new TableRow({
@@ -472,17 +485,17 @@ class DocxService {
             })),
             new TableRow({
                 children: [
-                    new TableCell({ children: [new Paragraph({ ...tableHeaderStyle, text: "TOTAL" })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + item.daysTaught, 0)) })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: "100%" })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: "50" })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.remembering, 10) || 0), 0)) })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.understanding, 10) || 0), 0)) })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.applying, 10) || 0), 0)) })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.analyzing, 10) || 0), 0)) })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.evaluating, 10) || 0), 0)) })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.creating, 10) || 0), 0)) })] }),
-                    new TableCell({ children: [new Paragraph({ ...tableCellStyle, text: "1-50" })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableHeaderStyle, text: "TOTAL" })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + item.daysTaught, 0)) })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: "100%" })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: "50" })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.remembering, 10) || 0), 0)) })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.understanding, 10) || 0), 0)) })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.applying, 10) || 0), 0)) })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.analyzing, 10) || 0), 0)) })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.evaluating, 10) || 0), 0)) })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: String(tableOfSpecifications.reduce((acc, item) => acc + (parseInt(item.creating, 10) || 0), 0)) })] }),
+                    new TableCell({ ...tableHeaderCellShading, children: [new Paragraph({ ...tableCellStyle, text: "1-50" })] }),
                 ]
             }),
         ],
@@ -807,6 +820,25 @@ class DocxService {
     }
     
     private getHardcodedReflectionTable(isFilipino: boolean): Table {
+        const checkboxPara = (text: string) => new Paragraph({ children: [new TextRun("☐ "), new TextRun(text)] });
+
+        const leftColStyle: ITableCellOptions = {
+            width: { size: 45, type: WidthType.PERCENTAGE },
+            verticalAlign: VerticalAlign.CENTER,
+            borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "000000" }, bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "000000" }, right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            }
+        };
+        const rightColStyle: ITableCellOptions = {
+             width: { size: 55, type: WidthType.PERCENTAGE },
+             verticalAlign: VerticalAlign.CENTER,
+             borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "000000" }, bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "000000" }, right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            }
+        };
+
         const questions = [
             { q: isFilipino ? 'A. Bilang ng mag-aaral na nakakuha ng 80% sa pagtataya' : 'A. No. of learners who earned 80% in the evaluation' },
             { q: isFilipino ? 'B. Bilang ng mag-aaral na nangangailangan ng remediation na nakakuha ng mababa sa 80%' : 'B. No. of learners who require additional activities for remediation who score below 80%' },
@@ -817,18 +849,53 @@ class DocxService {
             { q: isFilipino ? 'G. Anong kagamitang panturo ang aking nadibuho na nais kong ibahagi sa mga kapwa ko guro.' : 'G. What innovation or localized materials did I use / discover which I wish to share with other teachers.' },
         ];
         
+        const rightColContent = [
+            // A
+            [
+                new Paragraph("___ out of ___ learners earned 80% and above - ___________"),
+                new Paragraph("___ out of ___ learners earned 80% and above - ___________"),
+                new Paragraph("___ out of ___ learners earned 80% and above - ___________"),
+            ],
+            // B
+            [
+                new Paragraph("___ out of ___ learners require additional activities - ___________"),
+                new Paragraph("___ out of ___ learners require additional activities - ___________"),
+                new Paragraph("___ out of ___ learners require additional activities - ___________"),
+            ],
+            // C
+            [
+                new Paragraph({ children: [new TextRun("☐ YES   ☐ NO")]}),
+                new Paragraph({ children: [new TextRun("☐ ___ learners caught up with the lesson")]}),
+            ],
+            // D
+            [ new Paragraph({ children: [new TextRun("☐ ___ learners continue to require remediation")]}) ],
+            // E
+            [
+                checkboxPara("experiment"), checkboxPara("collaborative learning"), checkboxPara("differentiated instruction"),
+                checkboxPara("lecture"), checkboxPara("think-pair-share"), checkboxPara("role play"),
+                checkboxPara("discovery"), checkboxPara("board work"),
+                new Paragraph("Why? _________________________________________"),
+            ],
+            // F
+            [
+                checkboxPara("bullying among students"), checkboxPara("student's behavior/attitude"),
+                checkboxPara("unavailable technology/equipment (AVR/LCD)"), checkboxPara("internet lab"),
+                new Paragraph("Why? _________________________________________"),
+            ],
+            // G
+            [
+                checkboxPara("localized videos"), checkboxPara("colorful worksheets"),
+                checkboxPara("local jingle composition"),
+                new Paragraph("Why? _________________________________________"),
+            ],
+        ];
+
         return new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            columnWidths: [50, 50],
-            rows: questions.map(item => new TableRow({
+            rows: questions.map((item, index) => new TableRow({
                 children: [
-                    new TableCell({
-                        children: [new Paragraph({ text: item.q })],
-                        verticalAlign: VerticalAlign.CENTER,
-                    }),
-                    new TableCell({
-                        children: [new Paragraph("")], // Empty cell for teacher's notes
-                    })
+                    new TableCell({ ...leftColStyle, children: [new Paragraph(item.q)] }),
+                    new TableCell({ ...rightColStyle, children: rightColContent[index] })
                 ]
             }))
         });
@@ -851,18 +918,12 @@ class DocxService {
         };
         const headerColor = getColorForGrade(dlpForm.gradeLevel);
         
-        const createHeading = (text: string) => new Table({
+        const createHeadingTable = (text: string) => new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [
-                new TableRow({
-                    children: [
-                        new TableCell({
-                            children: [new Paragraph({ text, run: { bold: true, font: "Times New Roman", size: 24 } })],
-                            shading: { type: ShadingType.CLEAR, fill: headerColor },
-                        })
-                    ]
-                })
-            ],
+            rows: [ new TableRow({ children: [ new TableCell({
+                children: [new Paragraph({ text, run: { bold: true, font: "Times New Roman", size: 24 } })],
+                shading: { type: ShadingType.CLEAR, fill: headerColor },
+            }) ] }) ],
         });
 
         const boldRun = (text: string): TextRun => new TextRun({ text, bold: true, font: "Times New Roman", size: 22 });
@@ -909,6 +970,20 @@ class DocxService {
             ],
         });
 
+        const answerKeyTable = new Table({
+            width: { size: 40, type: WidthType.PERCENTAGE },
+            columnWidths: [10, 90],
+            rows: (dlpContent.evaluationQuestions || []).map((q, index) => {
+                const answerLetter = String.fromCharCode(65 + (q.options?.findIndex(opt => opt === q.answer) ?? -1));
+                return new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ text: `${index + 1}.`, alignment: AlignmentType.LEFT })] }),
+                        new TableCell({ children: [new Paragraph({ text: `${answerLetter}. ${q.answer}` })] })
+                    ]
+                });
+            })
+        });
+
         const doc = new Document({
             numbering: {
                 config: [{
@@ -921,21 +996,21 @@ class DocxService {
                 children: [
                     headerTable,
                     new Paragraph({ text: "" }),
-                    createHeading(isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES'),
+                    createHeadingTable(isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'A. Pamantayang Pangnilalaman: ' : 'A. Content Standard: '), normalRun(dlpContent.contentStandard)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'B. Pamantayan sa Pagganap: ' : 'B. Performance Standard: '), normalRun(dlpContent.performanceStandard)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'C. Kasanayan sa Pagkatuto: ' : 'C. Learning Competency: '), normalRun(dlpForm.learningCompetency)] }),
                     new Paragraph({ text: isFilipino ? 'Sa pagtatapos ng aralin, ang mga mag-aaral ay inaasahang:' : 'At the end of the lesson, the learners should be able to:', spacing: { before: 100 } }),
                     new Paragraph({ text: dlpForm.lessonObjective, bullet: { level: 0 } }),
                     new Paragraph({ text: "" }),
-                    createHeading(isFilipino ? 'II. NILALAMAN' : 'II. CONTENT'),
+                    createHeadingTable(isFilipino ? 'II. NILALAMAN' : 'II. CONTENT'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'Paksa: ' : 'Topic: '), normalRun(dlpContent.topic)] }),
                     new Paragraph({ text: "" }),
-                    createHeading(isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES'),
+                    createHeadingTable(isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'A. Sanggunian: ' : 'A. References: '), normalRun(dlpContent.learningReferences)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'B. Kagamitan: ' : 'B. Materials: '), normalRun(dlpContent.learningMaterials)] }),
                     new Paragraph({ text: "" }),
-                    createHeading(isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURE'),
+                    createHeadingTable(isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURE'),
                     new Table({
                         width: { size: 100, type: WidthType.PERCENTAGE },
                         columnWidths: [25, 45, 30],
@@ -958,7 +1033,7 @@ class DocxService {
                         ]
                     }),
                     new Paragraph({ text: "" }),
-                    createHeading(isFilipino ? 'V. PAGTATAYA' : 'V. EVALUATION'),
+                    createHeadingTable(isFilipino ? 'V. PAGTATAYA' : 'V. EVALUATION'),
                     ...(dlpContent.evaluationQuestions || []).flatMap((q, index) => [
                         new Paragraph({
                             children: [new TextRun({ text: `${index + 1}. ${q.question}` })],
@@ -969,12 +1044,15 @@ class DocxService {
                             indent: { left: 720 },
                         }))
                     ]),
-
                     new Paragraph({ text: "", pageBreakBefore: true }),
-                    createHeading(isFilipino ? 'VI. MGA TALA' : 'VI. REMARKS'),
-                    new Paragraph({ text: dlpContent.remarksContent || '', spacing: { after: 400 } }),
-
-                    createHeading(isFilipino ? 'VII. PAGNINILAY' : 'VII. REFLECTION'),
+                    
+                    new Table({ // Reflection Header
+                        width: { size: 100, type: WidthType.PERCENTAGE },
+                        rows: [ new TableRow({ children: [ new TableCell({
+                            children: [new Paragraph({ text: isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION', run: { bold: true, font: "Times New Roman", size: 24 } })],
+                            shading: { type: ShadingType.CLEAR, fill: "F8CBAD" }, // Light Red/Pink
+                        }) ] }) ],
+                    }),
                     this.getHardcodedReflectionTable(isFilipino),
 
                     new Paragraph({ text: "", spacing: { after: 800 } }),
@@ -991,31 +1069,22 @@ class DocxService {
                                 ]
                             }),
                             new TableRow({
-                                children: [
-                                    new TableCell({ children: [new Paragraph({ text: "" })] }),
-                                    new TableCell({ children: [new Paragraph({ text: "" })] }),
-                                    new TableCell({ children: [new Paragraph({ text: "" })] }),
-                                ],
+                                children: [ new TableCell({ children: [new Paragraph({ text: "" })] }), new TableCell({ children: [new Paragraph({ text: "" })] }), new TableCell({ children: [new Paragraph({ text: "" })] }), ],
                                 height: { value: 1000, rule: HeightRule.ATLEAST }
                             }),
                             new TableRow({
                                 children: [
-                                    new TableCell({ children: [
-                                        new Paragraph({ text: dlpForm.preparedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }),
-                                        new Paragraph({ text: dlpForm.preparedByDesignation, alignment: AlignmentType.CENTER })
-                                    ]}),
-                                    new TableCell({ children: [
-                                        new Paragraph({ text: dlpForm.checkedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }),
-                                        new Paragraph({ text: dlpForm.checkedByDesignation, alignment: AlignmentType.CENTER })
-                                    ]}),
-                                    new TableCell({ children: [
-                                        new Paragraph({ text: dlpForm.approvedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }),
-                                        new Paragraph({ text: dlpForm.approvedByDesignation, alignment: AlignmentType.CENTER })
-                                    ]}),
+                                    new TableCell({ children: [ new Paragraph({ text: dlpForm.preparedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dlpForm.preparedByDesignation, alignment: AlignmentType.CENTER }) ]}),
+                                    new TableCell({ children: [ new Paragraph({ text: dlpForm.checkedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dlpForm.checkedByDesignation, alignment: AlignmentType.CENTER }) ]}),
+                                    new TableCell({ children: [ new Paragraph({ text: dlpForm.approvedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dlpForm.approvedByDesignation, alignment: AlignmentType.CENTER }) ]}),
                                 ]
                             })
                         ]
-                    })
+                    }),
+                    new Paragraph({ text: "", pageBreakBefore: true }),
+                    new Paragraph({ text: isFilipino ? 'Susi sa Pagwawasto (Para sa Pagtataya)' : 'Answer Key (For Evaluation)', heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER }),
+                    new Paragraph(""),
+                    answerKeyTable,
                 ],
             }]
         });
@@ -1034,7 +1103,7 @@ class DocxService {
                 case '8': return 'FFF2CC'; // Light Yellow
                 case '9': return 'F8CBAD'; // Light Red (Salmon)
                 case '10': return 'DDEBF7'; // Light Blue
-                default: return 'D9D9D9'; // Default light gray if not specified
+                default: return 'D9D9D9'; // Default light gray
             }
         };
 
@@ -1044,6 +1113,7 @@ class DocxService {
             shading: { type: ShadingType.CLEAR, fill: headerColor },
             columnSpan: 6,
         };
+
         const createHeaderRow = (text: string) => new TableRow({
             children: [ new TableCell({ ...headerCellStyle, children: [new Paragraph({ text, run: { bold: true } })] }) ]
         });
@@ -1069,7 +1139,7 @@ class DocxService {
                     }),
                     new Table({
                         width: { size: 100, type: WidthType.PERCENTAGE },
-                        columnWidths: [16.6, 16.6, 16.6, 16.6, 16.6, 16.6],
+                        columnWidths: [1000, 1000, 1000, 1000, 1000, 1000].map(w => w * 1.5), // Adjusting widths
                         rows: [
                             new TableRow({
                                 tableHeader: true,
