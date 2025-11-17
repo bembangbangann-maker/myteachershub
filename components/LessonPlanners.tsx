@@ -37,6 +37,12 @@ const subjectAreas = {
   "Senior High School - Applied (Grades 11-12)": ["Empowerment Technologies", "English for Academic and Professional Purposes", "Entrepreneurship", "Filipino sa Piling Larang", "Practical Research 1", "Practical Research 2"]
 };
 
+const activityTypes = [
+    "Concept Notes", "Skills: Exercise / Drill", "Performance Task", "Illustration / Drawing", "Formal Theme",
+    "Informal Theme", "Guided Practice", "Independent Practice", "Group Activity", "Problem Solving",
+    "Creative Output", "Inquiry-Based Learning", "Experiment / Investigation", "Others"
+];
+
 type ActiveTab = 'dlp' | 'dll' | 'quiz' | 'las' | 'exam';
 
 const LessonPlanners: React.FC = () => {
@@ -811,7 +817,12 @@ const LasFormUI = ({ lasForm, handleLasFormChange, generateLAS, isLoading }: any
         <TextAreaField id="lessonObjective" label="Lesson Objective" value={lasForm.lessonObjective} onChange={handleLasFormChange} required placeholder="e.g., Identify the parts of a plant" />
         
         <div className="grid grid-cols-2 gap-4">
-            <InputField id="activityType" label="Activity Focus/Type" value={lasForm.activityType} onChange={handleLasFormChange} placeholder="e.g., Guided Practice, Discovery" />
+            <div>
+                <label htmlFor="activityType" className="block text-sm font-medium text-base-content mb-1">Activity Focus/Type</label>
+                <select id="activityType" value={lasForm.activityType} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    {activityTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                </select>
+            </div>
             <div>
                 <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
                 <select id="language" value={lasForm.language} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
@@ -924,9 +935,47 @@ const DlpPreview = ({ dlpOutputHtml, handleDownloadDlpDocx, isLoading }: any) =>
 
 const DllPreview = ({ dllContent, dllHeaders, dllDays, handleDownloadDllDocx, isLoading }: any) => (
      <>
-        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0"><h3 className="text-xl font-bold">Generated Weekly Plan Preview</h3><button onClick={handleDownloadDllDocx} disabled={isLoading} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg"><DownloadIcon className="w-5 h-5 mr-2"/>Download Word File</button></div>
-        <div className="p-6 overflow-y-auto flex-grow min-h-0">
-             {/* Preview content here */}
+        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0">
+            <h3 className="text-xl font-bold">Generated Weekly Plan Preview</h3>
+            <button onClick={handleDownloadDllDocx} disabled={isLoading} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg">
+                <DownloadIcon className="w-5 h-5 mr-2"/>Download Word File
+            </button>
+        </div>
+        <div className="p-6 overflow-y-auto flex-grow min-h-0 text-sm">
+            <div className="space-y-4">
+                <div><strong>Content Standard:</strong> {dllContent.contentStandard}</div>
+                <div><strong>Performance Standard:</strong> {dllContent.performanceStandard}</div>
+                <div><strong>Content:</strong> {dllContent.content}</div>
+            </div>
+            <div className="overflow-x-auto mt-4">
+                <table className="w-full border-collapse">
+                    <thead>
+                        <tr className="bg-base-300/50">
+                            <th className="p-2 border border-base-300 w-1/6"></th>
+                            {dllDays.map((day: string) => <th key={day} className="p-2 border border-base-300">{day}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td className="p-2 border border-base-300 font-bold">{dllHeaders.learningCompetencies}</td>
+                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.monday}</td>
+                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.tuesday}</td>
+                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.wednesday}</td>
+                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.thursday}</td>
+                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.friday}</td>
+                        </tr>
+                        <tr className="bg-base-300/30"><td colSpan={6} className="p-2 border border-base-300 font-bold">{dllHeaders.procedures}</td></tr>
+                        {dllContent.procedures.map((proc: any, index: number) => (
+                            <tr key={index}>
+                                <td className="p-2 border border-base-300 font-semibold">{proc.procedure}</td>
+                                {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map(day => (
+                                    <td key={day} className="p-2 border border-base-300 whitespace-pre-wrap">{proc[day]}</td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </>
 );
@@ -938,16 +987,119 @@ const LasPreview = ({ lasContent, settings, lasForm, onDownload }: any) => (
             <button onClick={onDownload} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg"><DownloadIcon className="w-5 h-5 mr-2"/>Download Word File</button>
         </div>
         <div className="p-4 md:p-6 overflow-y-auto flex-grow min-h-0 bg-base-100">
-             {/* Preview content here */}
+            <div className="bg-white text-black p-4 font-serif border-2 border-black max-w-4xl mx-auto">
+                <header className="flex justify-between items-start mb-2 border-b-2 border-black pb-2">
+                    <div className="flex items-center gap-2">
+                        {settings.schoolLogo && <img src={settings.schoolLogo} alt="School Logo" className="h-16 w-16 object-contain" />}
+                        {settings.secondLogo && <img src={settings.secondLogo} alt="Second Logo" className="h-16 w-16 object-contain" />}
+                    </div>
+                    <div className="text-center">
+                        <p className="font-bold text-lg">Dynamic Learning Program</p>
+                        <p className="font-bold text-base">LEARNING ACTIVITY SHEET</p>
+                    </div>
+                    <div className="text-sm">
+                        <div className="border-2 border-black p-1">S.Y. {settings.schoolYear}</div>
+                    </div>
+                </header>
+                <table className="w-full border-collapse border-2 border-black text-sm mb-2">
+                    <tbody>
+                        <tr>
+                            <td className="border border-black p-1 w-2/3"><strong>Name:</strong></td>
+                            <td className="border border-black p-1 w-1/3"><strong>Score:</strong></td>
+                        </tr>
+                         <tr>
+                            <td className="border border-black p-1"><strong>Grade & Section:</strong></td>
+                            <td className="border border-black p-1"><strong>Date:</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div className="border-2 border-black">
+                    <p className="bg-black text-white font-bold p-1">Activity Title: <span className="font-normal">{lasContent.activityTitle}</span></p>
+                    <p className="bg-black text-white font-bold p-1">Learning Target: <span className="font-normal">{lasContent.learningTarget}</span></p>
+                    <div className="p-2">
+                        <p className="font-bold">References: <span className="italic text-xs">(Author, Title, Pages)</span></p>
+                        <p className="pl-4">{lasContent.references}</p>
+                    </div>
+                </div>
+                 <div className="mt-4 space-y-4">
+                    {lasContent.conceptNotes.map((note: any, index: number) => (
+                        <div key={`note-${index}`}>
+                            <h4 className="font-bold underline">{note.title}</h4>
+                            <p className="whitespace-pre-wrap">{note.content}</p>
+                        </div>
+                    ))}
+                     {lasContent.activities.map((activity: any, index: number) => (
+                        <div key={`activity-${index}`}>
+                            <h4 className="font-bold text-lg underline">{activity.title}</h4>
+                            <p className="italic mb-2">{activity.instructions}</p>
+                            {activity.questions && (
+                                <ol className="list-decimal list-inside space-y-2">
+                                    {activity.questions.map((q: any, qIndex: number) => <li key={qIndex}>{q.questionText}</li>)}
+                                </ol>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
     </>
 );
 
 const QuizPreview = ({ quizContent, activityPoints, handleActivityPointsChange, handleGenerateRubric, generatingRubricIndex, handleDownloadQuizDocx, isLoading }: any) => (
     <>
-        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0"><h3 className="text-xl font-bold">{quizContent.quizTitle}</h3><button onClick={handleDownloadQuizDocx} disabled={isLoading} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg"><DownloadIcon className="w-5 h-5 mr-2"/>Download Word File</button></div>
+        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0">
+            <h3 className="text-xl font-bold">{quizContent.quizTitle}</h3>
+            <button onClick={handleDownloadQuizDocx} disabled={isLoading} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg">
+                <DownloadIcon className="w-5 h-5 mr-2"/>Download Word File
+            </button>
+        </div>
         <div className="p-6 overflow-y-auto flex-grow min-h-0">
-            {/* Preview content here */}
+            <div className="space-y-8">
+                {Object.entries(quizContent.questionsByType).map(([type, section]) => {
+                    if (!section) return null;
+                    const typedSection = section as GeneratedQuizSection;
+                    return (
+                        <div key={type}>
+                            <h4 className="text-lg font-bold text-primary border-b-2 border-primary mb-2 pb-1">{type}</h4>
+                            <p className="text-sm italic mb-4">{typedSection.instructions}</p>
+                            <ol className="list-decimal list-inside space-y-4">
+                                {typedSection.questions.map((q, i) => (
+                                    <li key={i}>
+                                        <p>{q.questionText}</p>
+                                        {q.options && (
+                                            <ul className="list-none pl-6 mt-1 grid grid-cols-1 md:grid-cols-2 gap-x-4">
+                                                {q.options.map((opt, oi) => <li key={oi}>{String.fromCharCode(65 + oi)}. {opt}</li>)}
+                                            </ul>
+                                        )}
+                                    </li>
+                                ))}
+                            </ol>
+                        </div>
+                    );
+                })}
+                {quizContent.activities && quizContent.activities.length > 0 && (
+                    <div>
+                        <h4 className="text-lg font-bold text-primary border-b-2 border-primary mb-2 pb-1">Activities</h4>
+                        {quizContent.activities.map((activity: any, index: number) => (
+                            <div key={index} className="bg-base-100 p-4 rounded-lg mb-4">
+                                <h5 className="font-bold">{activity.activityName}</h5>
+                                <p className="text-sm italic my-2">{activity.activityInstructions}</p>
+                                {activity.rubric ? (
+                                    <div>
+                                        <h6 className="text-xs font-bold uppercase mt-2 mb-1">Rubric</h6>
+                                        <table className="w-full text-xs"><tbody>{activity.rubric.map((r: DlpRubricItem) => <tr key={r.criteria} className="border-b border-base-300"><td className="py-1">{r.criteria}</td><td className="py-1 text-right font-bold">{r.points} pts</td></tr>)}</tbody></table>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <input type="number" placeholder="Total Pts" value={activityPoints[index] || ''} onChange={e => handleActivityPointsChange(index, e.target.value)} className="w-24 bg-base-300 p-2 rounded-md h-8 text-sm" />
+                                        <button onClick={() => handleGenerateRubric(index)} disabled={generatingRubricIndex === index} className="flex items-center bg-primary hover:bg-primary-focus text-white font-bold py-1 px-3 rounded-lg text-sm"><SparklesIcon className="w-4 h-4 mr-1"/>{generatingRubricIndex === index ? 'Generating...' : 'Generate Rubric'}</button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     </>
 );

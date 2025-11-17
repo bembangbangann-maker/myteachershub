@@ -317,7 +317,7 @@ const dlpContentSchema = {
         learningMaterials: { type: Type.STRING, description: "List of materials needed." },
         procedures: { type: Type.ARRAY, items: dlpProcedureSchema },
         evaluationQuestions: { type: Type.ARRAY, items: dlpEvaluationQuestionSchema },
-        remarksContent: { type: Type.STRING, description: "Content for the remarks section." }
+        remarksContent: { type: Type.STRING, description: "An empty string. The teacher fills this out manually." }
     },
     required: ["contentStandard", "performanceStandard", "topic", "learningReferences", "learningMaterials", "procedures", "evaluationQuestions", "remarksContent"]
 };
@@ -349,14 +349,14 @@ export const generateDlpContent = async (options: {
         - DLP Format: ${dlpFormat} (Use this format for the procedures. E.g., for 4As: Activity, Analysis, Abstraction, Application)
 
         Instructions:
-        1.  Generate all sections of the DLP: Content Standard, Performance Standard, Topic, Learning References, Learning Materials, Procedures, Evaluation Questions, and Remarks.
+        1.  Generate all sections of the DLP: Content Standard, Performance Standard, Topic, Learning References, Learning Materials, Procedures, and Evaluation Questions.
         2.  For the "Procedures" section:
             - Create a sequence of activities based on the selected DLP Format (${dlpFormat}).
             - For each procedure step (e.g., Motivation, Activity, Analysis), provide a creative and descriptive **title**. Do not use generic labels like "Teacher's Activity" or "Student's Activity". For example, use titles like "Activity #1: The Word Maze", "Group Discussion: Unpacking the Poem", or "Motivation: Picture Analysis".
             - The 'content' for each procedure should detail both the teacher's actions/instructions and the expected student activities. Use markdown for formatting: use **bold letters** for emphasis and *italics* for special notes. Do not use asterisks for lists or any other purpose.
             - Align each procedure with a relevant PPST indicator based on the teacher's position (${teacherPosition}).
         3.  Create 5 multiple-choice evaluation questions with 4 options each, and provide the correct answer.
-        4.  Provide meaningful content for the "Remarks" section.
+        4.  For "remarksContent", provide an empty string "" as this section is for the teacher's handwritten notes after the lesson.
         5.  Strictly return the output as a JSON object adhering to the provided schema. Do not add any extra text or explanations.
     `;
 
@@ -506,8 +506,9 @@ export const generateDllContent = async (options: { subject: string; gradeLevel:
         - Performance Standard: ${performanceStandard || '(Generate a relevant standard)'}
         - DLL Format: ${dllFormat}
 
-        Generate content for all sections: Objectives (Learning Competencies), Content, Learning Resources, Procedures, Remarks, and Reflection for Monday to Friday.
+        Generate content for all sections: Objectives (Learning Competencies), Content, Learning Resources, and Procedures for Monday to Friday.
         Procedures should be detailed and follow the specified format.
+        Important: For the 'remarks' field, provide an empty string "". For the 'reflection' field, provide an empty array []. These sections are for the teacher to fill out manually after the lesson.
         Return a JSON object adhering to the schema.
     `;
     try {
