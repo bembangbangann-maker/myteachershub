@@ -265,7 +265,7 @@ class DocxService {
             const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(Boolean);
 
             for (const part of parts) {
-                const fontOptions = { font: "Arial", size: 22 };
+                const fontOptions = { font: "Times New Roman", size: 22 };
                 if (part.startsWith('**') && part.endsWith('**')) {
                     children.push(new TextRun({ text: part.slice(2, -2), bold: true, ...fontOptions }));
                 } else if (part.startsWith('*') && part.endsWith('*')) {
@@ -968,63 +968,30 @@ class DocxService {
         const schoolLogo = this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 50, 50);
         const secondLogo = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 50, 50);
 
-        const blackHeaderCell = {
-            shading: { type: ShadingType.CLEAR, fill: "000000" },
-            verticalAlign: VerticalAlign.CENTER,
-        };
+        const blackTextRun = { font: "Times New Roman", size: 22, bold: true };
+        const normalText = { font: "Times New Roman", size: 22 };
         const whiteTextRun = { color: "FFFFFF", bold: true, font: "Arial", size: 20 };
-        const normalText = { font: "Arial", size: 20 };
 
-        const headerTable = new Table({
+        const table1 = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            columnWidths: [35, 35, 30],
-            rows: [
-                new TableRow({
-                    children: [
-                        new TableCell({
-                            children: [
-                                new Paragraph({
-                                    children: [
-                                        ...(schoolLogo ? [schoolLogo, new TextRun("  ")] : []),
-                                        ...(secondLogo ? [secondLogo, new TextRun("  ")] : []),
-                                        new TextRun({ text: "Dynamic Learning Program", bold: true, size: 24 }),
-                                    ],
-                                    alignment: AlignmentType.LEFT,
-                                }),
-                            ],
-                            columnSpan: 2, verticalAlign: VerticalAlign.CENTER,
-                        }),
-                        new TableCell({
-                            children: [ new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [ new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: `S.Y. ${settings.schoolYear}`, alignment: AlignmentType.CENTER })], })] }), new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: '' })], borders: { top: { style: BorderStyle.SINGLE, size: 2, color: "000000" } } })] }), new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: '' })], borders: { top: { style: BorderStyle.SINGLE, size: 2, color: "000000" } } })] }), ] }) ],
-                            verticalAlign: VerticalAlign.TOP,
-                        }),
-                    ],
-                }),
-                new TableRow({ children: [ new TableCell({ children: [new Paragraph({ text: "LEARNING ACTIVITY SHEET", bold: true, size: 28, alignment: AlignmentType.CENTER })], columnSpan: 3, borders: { bottom: { style: BorderStyle.SINGLE, size: 8, color: "000000" } } }) ] }),
-                new TableRow({
-                    children: [
-                        new TableCell({ children: [ new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: [1, 2], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }, rows: [new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name:", ...whiteTextRun })] })], ...blackHeaderCell }), new TableCell({ children: [new Paragraph("")] })] })] }) ], columnSpan: 2 }),
-                        new TableCell({ children: [ new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: [1, 2], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }, rows: [new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score:", ...whiteTextRun })] })], ...blackHeaderCell }), new TableCell({ children: [new Paragraph("")] })] })] }) ] }),
-                    ],
-                }),
-                new TableRow({
-                    children: [
-                        new TableCell({ children: [ new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: [1, 2], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }, rows: [new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Grade & Section:", ...whiteTextRun })] })], ...blackHeaderCell }), new TableCell({ children: [new Paragraph("")] })] })] }) ], columnSpan: 2 }),
-                        new TableCell({ children: [ new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: [1, 2], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }, rows: [new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date:", ...whiteTextRun })] })], ...blackHeaderCell }), new TableCell({ children: [new Paragraph("")] })] })] }) ] }),
-                    ],
-                }),
-                new TableRow({
-                    children: [
-                        new TableCell({
-                            children: [ new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [ new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Type of Activity: ", ...whiteTextRun }), new TextRun({ text: "(Check or choose from below.)", color: "FFFFFF", font: "Arial", size: 20 })] })], ...blackHeaderCell })] }), new TableRow({ children: [new TableCell({ children: [new Paragraph(" ")] })] }), new TableRow({ children: [new TableCell({ children: [ new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: [25, 25, 25, 25], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }, rows: [ new TableRow({ children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun('\u2610  Concept Notes')] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun('\u2610  Performance Task')] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun('\u2610  Formal Theme')] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun('\u2610  Others:')] })] }), ] }), new TableRow({ children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun('\u2610  Skills: Exercise / Drill')] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun('\u2610  Illustration')] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun('\u2610  Informal Theme')] })] }), new TableCell({ children: [new Paragraph("")] }), ] }) ] }) ] })] }) ] }) ],
-                            columnSpan: 3,
-                        }),
-                    ],
-                }),
-                new TableRow({ height: { value: 800, rule: HeightRule.ATLEAST }, children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Activity Title:", ...whiteTextRun })] })], ...blackHeaderCell }), new TableCell({ children: [new Paragraph({ text: lasContent.activityTitle, alignment: AlignmentType.CENTER, run: normalText })], columnSpan: 2, verticalAlign: VerticalAlign.CENTER }) ] }),
-                new TableRow({ height: { value: 1200, rule: HeightRule.ATLEAST }, children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Learning Target:", ...whiteTextRun })] })], ...blackHeaderCell }), new TableCell({ children: [new Paragraph({ text: lasContent.learningTarget, run: normalText })], columnSpan: 2, verticalAlign: VerticalAlign.TOP }) ] }),
-                new TableRow({ height: { value: 800, rule: HeightRule.ATLEAST }, children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "References:", ...whiteTextRun }), new TextRun({ text: "\n(Author, Title, Pages)", color: "FFFFFF", size: 16, font: "Arial" })] })], ...blackHeaderCell }), new TableCell({ children: [new Paragraph({ text: lasContent.references, run: normalText })], columnSpan: 2, verticalAlign: VerticalAlign.TOP }) ] }),
-            ]
+            rows: [ new TableRow({ children: [ new TableCell({ children: [ new Paragraph({ children: [ ...(schoolLogo ? [schoolLogo, new TextRun("  ")] : []), ...(secondLogo ? [secondLogo] : []), ], alignment: AlignmentType.LEFT }) ], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }, width: { size: 20, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, }), new TableCell({ children: [ new Paragraph({ text: "Dynamic Learning Program", bold: true, size: 24, alignment: AlignmentType.CENTER }), new Paragraph({ text: "LEARNING ACTIVITY SHEET", bold: true, size: 28, alignment: AlignmentType.CENTER }), ], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }, width: { size: 60, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.CENTER, }), new TableCell({ children: [ new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.SINGLE, size: 2 }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.SINGLE, size: 2 }, right: { style: BorderStyle.SINGLE, size: 2 } }, rows: [ new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: `S.Y. ${settings.schoolYear}`, alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }, })] }) ] }) ], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }, width: { size: 20, type: WidthType.PERCENTAGE }, verticalAlign: VerticalAlign.TOP, }), ], }), ],
+        });
+
+        const table2 = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: { top: { style: BorderStyle.SINGLE, size: 6, color: "000000" }, bottom: { style: BorderStyle.SINGLE, size: 6, color: "000000" }, left: { style: BorderStyle.SINGLE, size: 6, color: "000000" }, right: { style: BorderStyle.SINGLE, size: 6, color: "000000" }, insideHorizontal: { style: BorderStyle.SINGLE, size: 2, color: "000000" }, insideVertical: { style: BorderStyle.SINGLE, size: 2, color: "000000" }, },
+            rows: [ new TableRow({ children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name:", ...blackTextRun })] })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score:", ...blackTextRun })] })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }), ] }), new TableRow({ children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Grade & Section:", ...blackTextRun })] })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date:", ...blackTextRun })] })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }), ] }), ],
+        });
+
+        const table3 = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: { top: { style: BorderStyle.SINGLE, size: 6 }, bottom: { style: BorderStyle.SINGLE, size: 6 }, left: { style: BorderStyle.SINGLE, size: 6 }, right: { style: BorderStyle.SINGLE, size: 6 }, },
+            rows: [ new TableRow({ children: [ new TableCell({ children: [ new Paragraph({ children: [ new TextRun({ text: "Activity Title: ", ...whiteTextRun }), new TextRun({ text: lasContent.activityTitle, color: "FFFFFF", font: "Arial", size: 20, bold: true }) ]}), new Paragraph({ children: [ new TextRun({ text: "Learning Target: ", ...whiteTextRun }), new TextRun({ text: lasContent.learningTarget, color: "FFFFFF", font: "Arial", size: 20 }) ]}) ], shading: { type: ShadingType.CLEAR, fill: "000000" }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }, }) ] }) ]
+        });
+
+        const table4 = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [ new TableRow({ height: { value: 800, rule: HeightRule.ATLEAST }, children: [ new TableCell({ children: [ new Paragraph({ children: [new TextRun({ text: "References: ", ...blackTextRun }), new TextRun({ text: "(Author, Title, Pages)", font: "Times New Roman", size: 18, italics: true })] }), new Paragraph({ text: lasContent.references, run: normalText }) ], verticalAlign: VerticalAlign.TOP, borders: { top: { style: BorderStyle.SINGLE, size: 2 }, bottom: { style: BorderStyle.SINGLE, size: 2 }, left: { style: BorderStyle.SINGLE, size: 2 }, right: { style: BorderStyle.SINGLE, size: 2 } }, }) ] }) ]
         });
 
         const contentParagraphs = [
@@ -1051,7 +1018,13 @@ class DocxService {
             },
             sections: [{
                 children: [
-                    headerTable,
+                    table1,
+                    new Paragraph({ text: "" }),
+                    table2,
+                    new Paragraph({ text: "" }),
+                    table3,
+                    new Paragraph({ text: "" }),
+                    table4,
                     new Paragraph({ text: "", spacing: { after: 200 }}),
                     ...contentParagraphs
                 ]
