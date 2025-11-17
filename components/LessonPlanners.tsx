@@ -740,7 +740,46 @@ const DlpFormUI = ({ dlpForm, handleDlpFormChange, teacherPosition, setTeacherPo
 const DllFormUI = ({ dllForm, handleDllFormChange, dllFormat, setDllFormat, generateDLL, isLoading }: any) => (
     <div className="space-y-4">
         <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><SparklesIcon className="w-6 h-6 mr-2 text-primary" />Weekly Plan Generator</h3>
-        {/* Form fields here */}
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label htmlFor="subject" className="block text-sm font-medium text-base-content mb-1">Subject<span className="text-error">*</span></label>
+                <select id="subject" value={dllForm.subject} onChange={handleDllFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    {Object.entries(subjectAreas).map(([group, subjects]) => (
+                        <optgroup label={group} key={group}>
+                            {subjects.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                        </optgroup>
+                    ))}
+                </select>
+            </div>
+            <div>
+                <label htmlFor="gradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
+                <select id="gradeLevel" value={dllForm.gradeLevel} onChange={handleDllFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option> ))}
+                </select>
+            </div>
+        </div>
+        <InputField id="teachingDates" label="Teaching Dates" value={dllForm.teachingDates} onChange={handleDllFormChange} placeholder="e.g., November 6-10, 2023" />
+        <TextAreaField id="weeklyTopic" label="Weekly Topic" value={dllForm.weeklyTopic} onChange={handleDllFormChange} rows={2} placeholder="Main topic for the week" />
+        <TextAreaField id="contentStandard" label="Content Standard" value={dllForm.contentStandard} onChange={handleDllFormChange} rows={3} placeholder="Paste the content standard here..." />
+        <TextAreaField id="performanceStandard" label="Performance Standard" value={dllForm.performanceStandard} onChange={handleDllFormChange} rows={3} placeholder="Paste the performance standard here..." />
+
+        <div className="grid grid-cols-2 gap-4">
+             <div>
+                <label htmlFor="dllFormat" className="block text-sm font-medium text-base-content mb-1">DLL Format</label>
+                <select id="dllFormat" value={dllFormat} onChange={(e: any) => setDllFormat(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    <option>Standard</option>
+                    <option>4As (Activity, Analysis, Abstraction, Application)</option>
+                    <option>5Es (Engage, Explore, Explain, Elaborate, Evaluate)</option>
+                </select>
+            </div>
+            <div>
+                <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
+                <select id="language" value={dllForm.language} onChange={handleDllFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    <option>English</option>
+                    <option>Filipino</option>
+                </select>
+            </div>
+        </div>
         <div className="pt-4"><button onClick={generateDLL} disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Weekly Plan'}</button></div>
     </div>
 );
@@ -788,7 +827,48 @@ const LasFormUI = ({ lasForm, handleLasFormChange, generateLAS, isLoading }: any
 const QuizFormUI = ({ quizForm, handleQuizFormChange, handleQuizTypeChange, generateQuiz, isLoading }: any) => (
      <form onSubmit={(e) => { e.preventDefault(); generateQuiz(); }} className="space-y-4">
         <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><SparklesIcon className="w-6 h-6 mr-2 text-primary" />Quiz Generator</h3>
-        {/* Form fields here */}
+        <InputField id="quizTopic" label="Quiz Topic" value={quizForm.quizTopic} onChange={handleQuizFormChange} required placeholder="e.g., Parts of a Cell" />
+
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label htmlFor="subject" className="block text-sm font-medium text-base-content mb-1">Subject<span className="text-error">*</span></label>
+                <select id="subject" name="subject" value={quizForm.subject} onChange={handleQuizFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    {Object.entries(subjectAreas).map(([group, subjects]) => (
+                        <optgroup label={group} key={group}>
+                            {subjects.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                        </optgroup>
+                    ))}
+                </select>
+            </div>
+            <div>
+                <label htmlFor="gradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
+                <select id="gradeLevel" name="gradeLevel" value={quizForm.gradeLevel} onChange={handleQuizFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option>))}
+                </select>
+            </div>
+        </div>
+        
+        <div>
+            <label htmlFor="numQuestions" className="block text-sm font-medium text-base-content mb-1">Number of Questions per Type</label>
+            <input type="number" id="numQuestions" value={quizForm.numQuestions} onChange={handleQuizFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10" min="1" max="20" />
+        </div>
+
+        <div>
+            <label className="block text-sm font-medium text-base-content mb-1">Quiz Formats</label>
+            <div className="grid grid-cols-2 gap-2">
+                {(['Multiple Choice', 'True or False', 'Identification'] as QuizType[]).map(type => (
+                    <label key={type} className="flex items-center gap-2 bg-base-100 p-2 rounded-md">
+                        <input
+                            type="checkbox"
+                            checked={quizForm.quizTypes.includes(type)}
+                            onChange={() => handleQuizTypeChange(type)}
+                            className="checkbox checkbox-primary"
+                        />
+                        <span className="text-sm">{type}</span>
+                    </label>
+                ))}
+            </div>
+        </div>
         <div className="pt-4"><button type="submit" disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Quiz'}</button></div>
     </form>
 );
@@ -803,7 +883,7 @@ const ExamGeneratorForm = ({ examObjectives, onAddObjective, onRemoveObjective, 
             <div>
                 <label htmlFor="examGradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
                 <select id="examGradeLevel" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option> ))}
+                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option>))}
                 </select>
             </div>
             <div>
