@@ -722,25 +722,82 @@ const LessonPlanners: React.FC = () => {
 // To keep the main component cleaner, UI sections are broken down.
 
 const DlpFormUI = ({ dlpForm, handleDlpFormChange, teacherPosition, setTeacherPosition, generateDLP, isLoading }: any) => (
-    <div className="space-y-4">
+    <form onSubmit={(e) => { e.preventDefault(); generateDLP(); }} className="space-y-4">
         <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><SparklesIcon className="w-6 h-6 mr-2 text-primary" />DLP Generator</h3>
-        {/* Form fields here, extracted for clarity */}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField id="teacher" label="Teacher" value={dlpForm.teacher} onChange={handleDlpFormChange} required />
             <InputField id="schoolName" label="School Name" value={dlpForm.schoolName} onChange={handleDlpFormChange} required />
-             <div>
+            <div>
+                <label htmlFor="subject" className="block text-sm font-medium text-base-content mb-1">Subject<span className="text-error">*</span></label>
+                <select id="subject" value={dlpForm.subject} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                     {Object.entries(subjectAreas).map(([group, subjects]) => (
+                        <optgroup label={group} key={group}>
+                            {subjects.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                        </optgroup>
+                    ))}
+                </select>
+            </div>
+            <InputField id="teachingDates" label="Teaching Dates" value={dlpForm.teachingDates} onChange={handleDlpFormChange} required placeholder="e.g., November 6-10, 2023" />
+            <div>
                 <label htmlFor="gradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
                 <select id="gradeLevel" value={dlpForm.gradeLevel} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
                     {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option> ))}
                 </select>
             </div>
-             <div><label htmlFor="quarterSelect" className="block text-sm font-medium text-base-content mb-1">Quarter<span className="text-error">*</span></label><select id="quarterSelect" value={dlpForm.quarterSelect} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10"><option>1ST QUARTER</option><option>2ND QUARTER</option><option>3RD QUARTER</option><option>4TH QUARTER</option></select></div>
+            <div>
+                <label htmlFor="quarterSelect" className="block text-sm font-medium text-base-content mb-1">Quarter<span className="text-error">*</span></label>
+                <select id="quarterSelect" value={dlpForm.quarterSelect} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10"><option>1ST QUARTER</option><option>2ND QUARTER</option><option>3RD QUARTER</option><option>4TH QUARTER</option></select>
+            </div>
         </div>
         <TextAreaField id="classSchedule" label="Class Schedule" value={dlpForm.classSchedule} onChange={handleDlpFormChange} rows={2} required placeholder="e.g., 12:40 - 1:20 PM, G9-Gentleness"/>
-        <TextAreaField id="learningCompetency" label="Learning Competency" value={dlpForm.learningCompetency} onChange={handleDlpFormChange} required placeholder="Paste the learning competency here..." />
-        <TextAreaField id="lessonObjective" label="Lesson Objective" value={dlpForm.lessonObjective} onChange={handleDlpFormChange} required placeholder="e.g., construct if clauses using the structure of Second Conditionals" />
-        <div className="pt-4"><button onClick={generateDLP} disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Full DLP'}</button></div>
-    </div>
+
+        <div className="pt-4 mt-4 border-t border-base-300 space-y-4">
+            <TextAreaField id="learningCompetency" label="Learning Competency" value={dlpForm.learningCompetency} onChange={handleDlpFormChange} required placeholder="Paste the learning competency here..." />
+            <TextAreaField id="lessonObjective" label="Lesson Objective" value={dlpForm.lessonObjective} onChange={handleDlpFormChange} required placeholder="e.g., construct if clauses using the structure of Second Conditionals" />
+            <TextAreaField id="previousLesson" label="Previous Lesson (for review context)" value={dlpForm.previousLesson} onChange={handleDlpFormChange} rows={2} required placeholder="e.g., First Conditionals" />
+        </div>
+        
+        <div className="pt-4 mt-4 border-t border-base-300 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="teacherPosition" className="block text-sm font-medium text-base-content mb-1">Your Position (for PPST)</label>
+                    <select id="teacherPosition" value={teacherPosition} onChange={(e) => setTeacherPosition(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                        <option>Beginning</option><option>Proficient</option><option>Highly Proficient</option><option>Distinguished</option>
+                    </select>
+                </div>
+                 <div>
+                    <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
+                    <select id="language" value={dlpForm.language} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                        <option>English</option><option>Filipino</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label htmlFor="dlpFormat" className="block text-sm font-medium text-base-content mb-1">DLP Format</label>
+                <select id="dlpFormat" value={dlpForm.dlpFormat} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
+                    <option>Standard DepEd</option>
+                    <option>4As (Activity, Analysis, Abstraction, Application)</option>
+                    <option>5Es (Engage, Explore, Explain, Elaborate, Evaluate)</option>
+                    <option>Explicit Instruction</option>
+                </select>
+            </div>
+        </div>
+
+        <div className="pt-4 mt-4 border-t border-base-300 space-y-4">
+             <h4 className="text-lg font-bold text-base-content">Signatories</h4>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField id="preparedByName" label="Prepared By (Name)" value={dlpForm.preparedByName} onChange={handleDlpFormChange} />
+                <TextAreaField id="preparedByDesignation" label="Designation" value={dlpForm.preparedByDesignation} onChange={handleDlpFormChange} rows={2} />
+                <InputField id="checkedByName" label="Checked By (Name)" value={dlpForm.checkedByName} onChange={handleDlpFormChange} />
+                <TextAreaField id="checkedByDesignation" label="Designation" value={dlpForm.checkedByDesignation} onChange={handleDlpFormChange} rows={2} />
+                <InputField id="approvedByName" label="Approved By (Name)" value={dlpForm.approvedByName} onChange={handleDlpFormChange} />
+                <TextAreaField id="approvedByDesignation" label="Designation" value={dlpForm.approvedByDesignation} onChange={handleDlpFormChange} rows={2} />
+             </div>
+        </div>
+
+        <div className="pt-4"><button type="submit" disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Full DLP'}</button></div>
+    </form>
 );
 
 const DllFormUI = ({ dllForm, handleDllFormChange, dllFormat, setDllFormat, generateDLL, isLoading }: any) => (
@@ -781,8 +838,7 @@ const DllFormUI = ({ dllForm, handleDllFormChange, dllFormat, setDllFormat, gene
             <div>
                 <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
                 <select id="language" value={dllForm.language} onChange={handleDllFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    <option>English</option>
-                    <option>Filipino</option>
+                    <option>English</option><option>Filipino</option>
                 </select>
             </div>
         </div>
@@ -826,8 +882,7 @@ const LasFormUI = ({ lasForm, handleLasFormChange, generateLAS, isLoading }: any
             <div>
                 <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
                 <select id="language" value={lasForm.language} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    <option>English</option>
-                    <option>Filipino</option>
+                    <option>English</option><option>Filipino</option>
                 </select>
             </div>
         </div>
