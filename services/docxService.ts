@@ -253,22 +253,17 @@ class DocxService {
     }
     
     private parseLasMarkdown(markdownText: string): Paragraph[] {
-        if (!markdownText) return [new Paragraph({ run: { font: "Century Gothic", size: 28 }})];
+        if (!markdownText) return [new Paragraph({ run: { font: "Century Gothic", size: 24 }})];
 
         const paragraphs: Paragraph[] = [];
-        const lines = markdownText.split('\n');
+        const lines = markdownText.split('\n').filter(line => line.trim() !== '');
 
         for (const line of lines) {
-            if (line.trim() === '') {
-                paragraphs.push(new Paragraph({ run: { font: "Century Gothic", size: 28 }}));
-                continue;
-            }
-
             const children: TextRun[] = [];
-            const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(Boolean);
+            const parts = line.trim().split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(Boolean);
 
             for (const part of parts) {
-                const fontOptions = { font: "Century Gothic", size: 28 };
+                const fontOptions = { font: "Century Gothic", size: 24 };
                 if (part.startsWith('**') && part.endsWith('**')) {
                     children.push(new TextRun({ text: part.slice(2, -2), bold: true, ...fontOptions }));
                 } else if (part.startsWith('*') && part.endsWith('*')) {
@@ -279,12 +274,13 @@ class DocxService {
             }
             
             const isListItem = /^\s*•\s+/.test(line.trim());
+            const isSubListItem = /^\s*o\s+/.test(line.trim());
 
             paragraphs.push(new Paragraph({
                 children,
-                bullet: isListItem ? { level: 0 } : undefined,
-                indent: isListItem ? { left: 720, hanging: 360 } : undefined,
-                spacing: { after: 120 }
+                bullet: isSubListItem ? { level: 1 } : (isListItem ? { level: 0 } : undefined),
+                indent: isSubListItem ? { left: 1080, hanging: 360 } : (isListItem ? { left: 720, hanging: 360 } : undefined),
+                spacing: { after: 80 }
             }));
         }
 
@@ -744,76 +740,88 @@ class DocxService {
                 sections.push(new PageBreak());
             }
 
-            const headerTable = new Table({
-                 width: { size: 100, type: WidthType.PERCENTAGE },
-                 rows: [
-                    new TableRow({
-                        children: [
-                            new TableCell({
-                                children: [
-                                    new Paragraph({
-                                        children: [
-                                            ...(this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 50, 50) ? [this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 50, 50)!] : []),
-                                            ...(this.createDocxImage(this.parseDataUrl(settings.secondLogo), 50, 50) ? [new TextRun({text: ' '}), this.createDocxImage(this.parseDataUrl(settings.secondLogo), 50, 50)!] : []),
-                                        ],
-                                        alignment: AlignmentType.LEFT,
-                                    })
-                                ],
-                                verticalAlign: VerticalAlign.CENTER,
-                                borders: { top: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }},
-                                columnSpan: 2,
-                            }),
-                            new TableCell({
-                                children: [
-                                    new Paragraph({ text: "Dynamic Learning Program", alignment: AlignmentType.CENTER, bold: true, run: { font: "Century Gothic", size: 32 } }),
-                                    new Paragraph({ text: "LEARNING ACTIVITY SHEET", alignment: AlignmentType.CENTER, bold: true, run: { font: "Century Gothic", size: 28 } })
-                                ],
-                                verticalAlign: VerticalAlign.CENTER,
-                                borders: { top: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }},
-                                columnSpan: 4,
-                            }),
-                            new TableCell({
-                                children: [
-                                     new Table({
-                                        rows: [
-                                            new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: `S.Y. ${settings.schoolYear}`})], borders: {top: {style: BorderStyle.SINGLE}, right: {style: BorderStyle.SINGLE}, bottom: {style: BorderStyle.SINGLE}, left: {style: BorderStyle.SINGLE}} })] }),
-                                            new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: `Subject: ${lasForm.subject}`})] })] }),
-                                            new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: `Q${Math.floor(index / 5) + 1} - LAS - ${dayData.dayTitle.split(' ')[1]}`})] })] }),
-                                        ],
-                                        borders: { top: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }},
-                                     }),
-                                ],
-                                borders: { top: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }},
-                                columnSpan: 2,
-                            })
-                        ]
-                    })
-                 ]
-            });
-            sections.push(headerTable);
+            // Day Title
+            sections.push(new Paragraph({ text: dayData.dayTitle, heading: HeadingLevel.HEADING_1, run: { font: "Century Gothic", size: 28, bold: true }, spacing: { before: 200, after: 100 } }));
+
+            // DepEd Header
+            sections.push(new Paragraph({
+                text: "DepED | Dynamic Learning Program | BAGONG PILIPINAS | LEARNING ACTIVITY SHEET",
+                alignment: AlignmentType.CENTER,
+                run: { font: "Century Gothic", size: 20, bold: true },
+                spacing: { after: 200 },
+                border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
+            }));
+
+            // Info Section
+            sections.push(new Paragraph({ text: `Subject: ${lasForm.subject}`, run: { font: "Century Gothic", size: 24 }, spacing: { top: 100, after: 50 } }));
+            sections.push(new Paragraph({ text: "Grade & Section: ____________________", run: { font: "Century Gothic", size: 24 }, spacing: { after: 100 } }));
+            sections.push(new Paragraph({
+                children: [
+                    new TextRun({ text: "Name: ____________________", font: "Century Gothic", size: 24 }),
+                    new TextRun({ text: "\t\t", font: "Century Gothic", size: 24 }),
+                    new TextRun({ text: "Score: __________", font: "Century Gothic", size: 24 }),
+                    new TextRun({ text: "\t\t", font: "Century Gothic", size: 24 }),
+                    new TextRun({ text: "Date: __________", font: "Century Gothic", size: 24 }),
+                ],
+                spacing: { after: 100 }
+            }));
+            sections.push(new Paragraph({ text: `Activity Title: ${dayData.activityTitle}`, run: { font: "Century Gothic", size: 24 }, spacing: { after: 50 } }));
+            sections.push(new Paragraph({ text: `Learning Target: ${dayData.learningTarget}`, run: { font: "Century Gothic", size: 24 }, spacing: { after: 100 } }));
+            sections.push(new Paragraph({ text: `Reference: ${dayData.references || '____________________'}`, run: { font: "Century Gothic", size: 24 }, spacing: { after: 200 } }));
 
             // Main content logic
-            const dayTitle = new Paragraph({ text: dayData.dayTitle, heading: HeadingLevel.HEADING_1, run: { font: "Century Gothic", size: 32 }, spacing: { before: 200, after: 100 } });
-            sections.push(dayTitle);
-            
             dayData.conceptNotes.forEach(note => {
-                sections.push(new Paragraph({ text: note.title, bold: true, underline: { type: UnderlineType.SINGLE }, run: { font: "Century Gothic", size: 28 }, spacing: { after: 100 } }));
+                sections.push(new Paragraph({ text: note.title, bold: true, run: { font: "Century Gothic", size: 28 }, spacing: { after: 100 } }));
                 sections.push(...this.parseLasMarkdown(note.content));
             });
             
             dayData.activities.forEach(activity => {
-                sections.push(new Paragraph({ text: activity.title, bold: true, underline: { type: UnderlineType.SINGLE }, run: { font: "Century Gothic", size: 28 }, spacing: { before: 200, after: 100 } }));
-                sections.push(new Paragraph({ text: `Directions: ${activity.instructions}`, italics: true, run: { font: "Century Gothic", size: 28 }, spacing: { after: 100 }}));
-                 if (activity.questions) {
+                sections.push(new Paragraph({ text: activity.title, bold: true, run: { font: "Century Gothic", size: 28 }, spacing: { before: 200, after: 100 } }));
+                
+                const isMatchingType = activity.title.toLowerCase().includes('match');
+                const instructionsLines = activity.instructions.split('\n');
+                const regularInstructions = instructionsLines.filter(line => !line.includes('||')).join('\n');
+                
+                if (regularInstructions.trim()) {
+                    sections.push(new Paragraph({ text: `Directions: ${regularInstructions}`, italics: true, run: { font: "Century Gothic", size: 24 }, spacing: { after: 100 }}));
+                }
+
+                const tableLines = instructionsLines.filter(line => line.includes('||'));
+
+                if (isMatchingType && tableLines.length > 0) {
+                    const tableRows = tableLines.map(line => {
+                        const parts = line.split('||');
+                        return new TableRow({
+                            children: [
+                                new TableCell({ children: this.parseLasMarkdown(parts[0] || ''), width: { size: 50, type: WidthType.PERCENTAGE } }),
+                                new TableCell({ children: this.parseLasMarkdown(parts[1] || ''), width: { size: 50, type: WidthType.PERCENTAGE } }),
+                            ],
+                        });
+                    });
+                    
+                    tableRows.unshift(new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ text: "Column A (Situation)", bold: true, alignment: AlignmentType.CENTER, run: { font: "Century Gothic", size: 24 } })] }),
+                            new TableCell({ children: [new Paragraph({ text: "Column B (Term)", bold: true, alignment: AlignmentType.CENTER, run: { font: "Century Gothic", size: 24 } })] }),
+                        ],
+                        tableHeader: true,
+                    }));
+
+                    sections.push(new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+                } else if (activity.instructions.trim()) {
+                    sections.push(...this.parseLasMarkdown(activity.instructions));
+                }
+
+                if (activity.questions) {
                     activity.questions.forEach(q => {
-                        sections.push(new Paragraph({ text: q.questionText, numbering: { reference: "las-list", level: 0 }, run: { font: "Century Gothic", size: 28 } }));
+                        sections.push(new Paragraph({ text: q.questionText, numbering: { reference: "las-list", level: 0 }, run: { font: "Century Gothic", size: 24 } }));
                     });
                 }
             });
 
-             sections.push(new Paragraph({ text: "REFLECTION", bold: true, underline: { type: UnderlineType.SINGLE }, run: { font: "Century Gothic", size: 28 }, spacing: { before: 200, after: 100 } }));
-             sections.push(new Paragraph({ text: dayData.reflection, run: { font: "Century Gothic", size: 28 }}));
-
+            sections.push(new Paragraph({ text: "REFLECTION", bold: true, run: { font: "Century Gothic", size: 28 }, spacing: { before: 200, after: 100 } }));
+            sections.push(new Paragraph({ text: dayData.reflection, run: { font: "Century Gothic", size: 24 }}));
+            sections.push(new Paragraph({ text: "__________________________________________________________________________________________", run: { font: "Century Gothic", size: 24 }, spacing: { before: 100 }}));
         });
 
         const doc = new Document({
@@ -826,7 +834,7 @@ class DocxService {
                             format: LevelFormat.DECIMAL,
                             text: "%1.",
                             indent: { left: 720, hanging: 360 },
-                            run: { font: "Century Gothic", size: 28 }
+                            run: { font: "Century Gothic", size: 24 }
                         }],
                     },
                 ],

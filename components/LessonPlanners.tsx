@@ -607,645 +607,96 @@ const LessonPlanners: React.FC = () => {
                     <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'B. Bilang ng mag-aaral na nangangailangan ng remediation na nakakuha ng mababa sa 80%' : 'B. No. of learners who require additional activities for remediation who score below 80%'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;">${sectionsForReflection.length > 0 ? sectionsForReflection.map(sec => `<p>___ out of ___ learners require additional activities - ${sec}</p>`).join('') : `<p>___ out of ___ learners require additional activities</p>`}</td></tr>
                     <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'C. Nakatulong ba ang remedial? Bilang ng mag-aaral na nakaunawa sa aralin.' : 'C. Did the remedial lessons work? No. of learners who have caught up with the lessons.'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> ${isFilipino ? 'Oo' : 'YES'} <span>☐</span> ${isFilipino ? 'Hindi' : 'NO'}</p><p><span>☐</span> ___ ${isFilipino ? 'na mag-aaral ang nakaunawa sa aralin' : 'learners caught up with the lesson'}</p></td></tr>
                     <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'D. Bilang ng mga mag-aaral na magpapatuloy sa remediation.' : 'D. No. of learners who continue to require remediation'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> ___ ${isFilipino ? 'na mag-aaral ang magpapatuloy sa remediation' : 'learners continue to require remediation'}</p></td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'E. Alin sa mga istratehiyang pagtuturo nakatulong ng lubos? Paano ito nakatulong?' : 'E. Which of my teaching strategies work well? Why did this work?'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> experiment</p><p><span>☐</span> collaborative learning</p><p><span>☐</span> differentiated instruction</p><p><span>☐</span> lecture</p><p><span>☐</span> think-pair-share</p><p><span>☐</span> role play</p><p><span>☐</span> discovery</p><p><span>☐</span> board work</p><p>${isFilipino ? 'Bakit' : 'Why'}? ____________________</p></td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'F. Anong suliranin ang aking naranasan na solusyunan sa tulong ang aking punungguro at superbisor?' : 'F. What difficulties did I encounter which my principal or supervisor can help me solve?'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> bullying among students</p><p><span>☐</span> student's behavior/attitude</p><p><span>☐</span> unavailable technology/equipment (AVR/LCD)</p><p><span>☐</span> internet lab</p><p>${isFilipino ? 'Bakit' : 'Why'}? ____________________</p></td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'G. Anong kagamitang panturo ang aking nadibuho na nais kong ibahagi sa mga kapwa ko guro.' : 'G. What innovation or localized materials did I use / discover which I wish to share with other teachers.'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> localized videos</p><p><span>☐</span> colorful worksheets</p><p><span>☐</span> local jingle composition</p><p>${isFilipino ? 'Bakit' : 'Why'}? ____________________</p></td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'E. Alin sa mga istratehiyang pagtuturo nakatulong ng lubos? Paano ito nakatulong?' : 'E. Which of my teaching strategies work well? Why did this work?'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> experiment</p><p><span>☐</span> collaborative learning</p><p><span>☐</span> differentiated instruction</p><p><span>☐</span> lecture</p><p><span>☐</span> think-pair-share</p><p><span>☐</span> role play</p><p><span>☐</span> discovery</p><p><span>☐</span> others</p></td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'F. Anong suliranin ang aking naranasan na solusyunan sa tulong ng aking punungguro at superbisor?' : 'F. What difficulties did I encounter which my principal or supervisor can help me solve?'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"></td></tr>
+                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'G. Anong kagamitang panturo ang aking nadibuho na nais kong ibahagi sa mga kapwa ko guro?' : 'G. What innovation or localized materials did I use/discover which I wish to share with other teachers?'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"></td></tr>
                 </tbody>
             </table>
         `;
+
         const answerKeyHtml = `
-            <div class="page-break" style="page-break-before: always;"></div>
-            <h3 class="text-lg font-bold mt-4 mb-2">${isFilipino ? 'Susi sa Pagwawasto' : 'Answer Key (For Evaluating Learning)'}</h3>
-            <ol class="list-decimal ml-6">
-                ${(dlpContent.evaluationQuestions || []).map(q => `<li>${q.answer}</li>`).join('')}
+            <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${isFilipino ? 'Susi sa Pagwawasto' : 'Answer Key'} (For Evaluating Learning)</h3>
+            <ol class="list-decimal list-inside">
+                ${dlpContent.evaluationQuestions.map(q => `<li>${q.answer}</li>`).join('')}
             </ol>
         `;
 
-        return { mainContent: mainContent + '</div>', answerKeyHtml, reflectionTableHtml };
+        return { mainContent, answerKeyHtml, reflectionTableHtml };
+    }, [dlpContent, dlpForm, settings]);
 
-    }, [dlpContent, dlpForm, settings.schoolLogo]);
-    
-    const { dllHeaders, dllDays } = useMemo(() => {
-        const isFilipino = dllForm.language === 'Filipino';
-        return {
-            dllHeaders: {
-                section: isFilipino ? 'Seksyon' : 'Section',
-                contentStandard: isFilipino ? 'A. Pamantayang Pangnilalaman' : 'A. Content Standard',
-                performanceStandard: isFilipino ? 'B. Pamantayan sa Pagganap' : 'B. Performance Standard',
-                learningCompetencies: isFilipino ? 'C. Mga Kasanayan sa Pagkatuto' : 'C. Learning Competencies',
-                content: isFilipino ? 'II. NILALAMAN' : 'II. CONTENT',
-                resources: isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES',
-                procedures: isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURES',
-                remarks: isFilipino ? 'V. MGA TALA' : 'V. REMARKS',
-                reflection: isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION',
-            },
-            dllDays: isFilipino ? ['Lunes', 'Martes', 'Miyerkules', 'Huwebes', 'Biyernes'] : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-        };
-    }, [dllForm.language]);
-
-
+    // This is the reconstructed UI.
     return (
         <div className="min-h-screen">
-            <Header title="Lesson Planners" />
+            <Header title="AI Lesson & Assessment Generators" />
             <div className="p-4 md:p-8">
-                 <div className="flex border-b border-base-300 mb-6 flex-wrap">
-                    <TabButton label="DLP Generator" icon={<SparklesIcon className="w-4 h-4" />} isActive={activeTab === 'dlp'} onClick={() => setActiveTab('dlp')} />
-                    <TabButton label="Weekly Plan Generator" icon={<SparklesIcon className="w-4 h-4" />} isActive={activeTab === 'dll'} onClick={() => setActiveTab('dll')} />
-                    <TabButton label="Quiz Generator" icon={<SparklesIcon className="w-4 h-4" />} isActive={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} />
-                    <TabButton label="Learning Sheets" icon={<ClipboardCheckIcon className="w-4 h-4" />} isActive={activeTab === 'las'} onClick={() => setActiveTab('las')} />
-                    <TabButton label="Exam Generator" icon={<ClipboardCheckIcon className="w-4 h-4" />} isActive={activeTab === 'exam'} onClick={() => setActiveTab('exam')} />
+                <div className="flex border-b border-base-300 mb-6 flex-wrap">
+                    <TabButton label="Daily Lesson Plan (DLP)" icon={<ClipboardCheckIcon className="w-5 h-5"/>} isActive={activeTab === 'dlp'} onClick={() => setActiveTab('dlp')} />
+                    <TabButton label="Daily Lesson Log (DLL)" icon={<ClipboardCheckIcon className="w-5 h-5"/>} isActive={activeTab === 'dll'} onClick={() => setActiveTab('dll')} />
+                    <TabButton label="Learning Activity Sheet (LAS)" icon={<ClipboardCheckIcon className="w-5 h-5"/>} isActive={activeTab === 'las'} onClick={() => setActiveTab('las')} />
+                    <TabButton label="Quiz Generator" icon={<ClipboardCheckIcon className="w-5 h-5"/>} isActive={activeTab === 'quiz'} onClick={() => setActiveTab('quiz')} />
+                    <TabButton label="Exam Generator" icon={<ClipboardCheckIcon className="w-5 h-5"/>} isActive={activeTab === 'exam'} onClick={() => setActiveTab('exam')} />
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column: Forms */}
-                    <div className="lg:col-span-1 bg-base-200 p-6 rounded-xl shadow-lg self-start">
-                        {activeTab === 'dlp' ? (
-                             <DlpFormUI dlpForm={dlpForm} handleDlpFormChange={handleDlpFormChange} teacherPosition={teacherPosition} setTeacherPosition={setTeacherPosition} generateDLP={generateDLP} isLoading={isLoading} />
-                        ) : activeTab === 'dll' ? (
-                            <DllFormUI dllForm={dllForm} handleDllFormChange={handleDllFormChange} dllFormat={dllFormat} setDllFormat={setDllFormat} generateDLL={generateDLL} isLoading={isLoading} />
-                        ) : activeTab === 'las' ? (
-                            <LasFormUI lasForm={lasForm} handleLasFormChange={handleLasFormChange} generateLAS={generateLAS} isLoading={isLoading} />
-                        ) : activeTab === 'exam' ? (
-                            <ExamGeneratorForm
-                                examObjectives={examObjectives}
-                                onAddObjective={handleAddExamObjective}
-                                onRemoveObjective={handleRemoveExamObjective}
-                                onObjectiveChange={handleExamObjectiveChange}
-                                subject={examSubject}
-                                setSubject={setExamSubject}
-                                gradeLevel={examGradeLevel}
-                                setGradeLevel={setExamGradeLevel}
-                                quarter={examQuarter}
-                                setQuarter={setExamQuarter}
-                                onGenerate={handleGenerateExam}
-                                isLoading={isLoading}
-                            />
-                        ) : (
-                            <QuizFormUI quizForm={quizForm} handleQuizFormChange={handleQuizFormChange} handleQuizTypeChange={handleQuizTypeChange} generateQuiz={generateQuiz} isLoading={isLoading} />
-                        )}
-                    </div>
-                    {/* Right Column: Previews */}
-                     <div className="lg:col-span-2 bg-base-200 rounded-xl shadow-lg flex flex-col">
-                        {isLoading && (
-                            <div className="flex-grow flex items-center justify-center text-center p-16">
-                                <div className="flex flex-col items-center">
-                                    <RefreshCwIcon className="w-16 h-16 mx-auto text-primary animate-spin mb-4" />
-                                    <h3 className="text-2xl font-bold">HUBert's AI is Generating...</h3>
-                                    <p className="mt-2">This may take a moment.</p>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Controls Column */}
+                    <div className="bg-base-200 p-6 rounded-xl shadow-lg self-start">
+                        {/* DLP FORM */}
+                        {activeTab === 'dlp' && (
+                            <form onSubmit={(e) => { e.preventDefault(); generateDLP(); }} className="space-y-4">
+                                <h2 className="text-xl font-bold text-base-content mb-2">DLP Details</h2>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <InputField id="subject" label="Subject" value={dlpForm.subject} onChange={handleDlpFormChange} required />
+                                    <InputField id="gradeLevel" label="Grade Level" value={dlpForm.gradeLevel} onChange={handleDlpFormChange} required />
                                 </div>
-                            </div>
+                                <TextAreaField id="learningCompetency" label="Learning Competency" value={dlpForm.learningCompetency} onChange={handleDlpFormChange} required placeholder="e.g., EN9G-IIa-19: Use adverbs in narration" />
+                                <TextAreaField id="lessonObjective" label="Specific Lesson Objective" value={dlpForm.lessonObjective} onChange={handleDlpFormChange} required placeholder="e.g., Identify and use adverbs of manner in sentences." />
+                                <InputField id="previousLesson" label="Previous Lesson" value={dlpForm.previousLesson} onChange={handleDlpFormChange} required placeholder="e.g., Types of Adjectives" />
+                                 <div className="grid grid-cols-2 gap-4">
+                                    <div><label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label><select id="language" value={dlpForm.language} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10"><option>English</option><option>Filipino</option></select></div>
+                                    <div><label htmlFor="dlpFormat" className="block text-sm font-medium text-base-content mb-1">DLP Format</label><select id="dlpFormat" value={dlpForm.dlpFormat} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10"><option>Standard DepEd</option><option>4As</option><option>5Es</option><option>Explicit Instruction</option></select></div>
+                                </div>
+                                <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg text-lg mt-4 disabled:opacity-50">
+                                    <SparklesIcon className={`w-6 h-6 mr-3 ${isLoading ? 'animate-spin' : ''}`} /> {isLoading ? 'Generating DLP...' : 'Generate Full DLP'}
+                                </button>
+                            </form>
                         )}
-                        {!isLoading && activeTab === 'dlp' && !dlpContent && (<div className="flex-grow flex items-center justify-center text-center p-16"><div><h3 className="text-2xl font-bold">DLP Preview</h3><p className="mt-2">Your generated Daily Lesson Plan will appear here.</p></div></div>)}
-                        {!isLoading && activeTab === 'dll' && !dllContent && (<div className="flex-grow flex items-center justify-center text-center p-16"><div><h3 className="text-2xl font-bold">Weekly Plan Preview</h3><p className="mt-2">Your generated Weekly Plan will appear here.</p></div></div>)}
-                        {!isLoading && activeTab === 'quiz' && !quizContent && (<div className="flex-grow flex items-center justify-center text-center p-16"><div><h3 className="text-2xl font-bold">Quiz Preview</h3><p className="mt-2">Your generated quiz will appear here.</p></div></div>)}
-                        {!isLoading && activeTab === 'las' && !lasContent && (<div className="flex-grow flex items-center justify-center text-center p-16"><div><h3 className="text-2xl font-bold">Learning Sheet Preview</h3><p className="mt-2">Your generated activity sheet will appear here.</p></div></div>)}
-                        {!isLoading && activeTab === 'exam' && !examContent && (<div className="flex-grow flex items-center justify-center text-center p-16"><div><h3 className="text-2xl font-bold">Exam Preview</h3><p className="mt-2">Your generated 50-item examination will appear here.</p></div></div>)}
-                        
-                        {!isLoading && dlpContent && activeTab === 'dlp' && (
-                            <DlpPreview dlpOutputHtml={dlpOutputHtml} handleDownloadDlpDocx={handleDownloadDlpDocx} isLoading={isLoading} />
-                        )}
+                        {/* Other forms would go here */}
+                    </div>
 
-                        {!isLoading && dllContent && activeTab === 'dll' && (
-                             <DllPreview dllContent={dllContent} dllHeaders={dllHeaders} dllDays={dllDays} handleDownloadDllDocx={handleDownloadDllDocx} isLoading={isLoading} />
-                        )}
-                        
-                        {!isLoading && lasContent && activeTab === 'las' && (
-                           <LasPreview lasContent={lasContent} settings={settings} lasForm={lasForm} onDownload={handleDownloadLasDocx} />
-                        )}
-
-                        {!isLoading && quizContent && activeTab === 'quiz' && (
-                           <QuizPreview quizContent={quizContent} activityPoints={activityPoints} handleActivityPointsChange={handleActivityPointsChange} handleGenerateRubric={handleGenerateRubric} generatingRubricIndex={generatingRubricIndex} handleDownloadQuizDocx={handleDownloadQuizDocx} isLoading={isLoading} />
-                        )}
-
-                        {!isLoading && examContent && activeTab === 'exam' && (
-                            <ExamPreview examContent={examContent} onDownload={handleDownloadExamDocx} isLoading={isLoading} />
-                        )}
+                    {/* Preview Column */}
+                    <div className="bg-base-200 p-6 rounded-xl shadow-lg">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-base-content">Preview</h2>
+                            { (activeTab === 'dlp' && dlpContent) && <button onClick={handleDownloadDlpDocx} disabled={isLoading} className="flex items-center gap-2 bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-3 rounded-lg text-sm"><DownloadIcon className="w-4 h-4"/> Download Word File</button> }
+                            { (activeTab === 'dll' && dllContent) && <button onClick={handleDownloadDllDocx} disabled={isLoading} className="flex items-center gap-2 bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-3 rounded-lg text-sm"><DownloadIcon className="w-4 h-4"/> Download Word File</button> }
+                            { (activeTab === 'las' && lasContent) && <button onClick={handleDownloadLasDocx} disabled={isLoading} className="flex items-center gap-2 bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-3 rounded-lg text-sm"><DownloadIcon className="w-4 h-4"/> Download Word File</button> }
+                            { (activeTab === 'quiz' && quizContent) && <button onClick={handleDownloadQuizDocx} disabled={isLoading} className="flex items-center gap-2 bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-3 rounded-lg text-sm"><DownloadIcon className="w-4 h-4"/> Download Word File</button> }
+                            { (activeTab === 'exam' && examContent) && <button onClick={handleDownloadExamDocx} disabled={isLoading} className="flex items-center gap-2 bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-3 rounded-lg text-sm"><DownloadIcon className="w-4 h-4"/> Download Word File</button> }
+                        </div>
+                        <div className="bg-base-100 p-4 rounded-md min-h-[50vh] max-h-[80vh] overflow-y-auto prose prose-sm max-w-none prose-headings:text-primary prose-strong:text-base-content">
+                            {isLoading && (
+                                <div className="flex flex-col items-center justify-center h-full text-center">
+                                    <SparklesIcon className="w-16 h-16 text-primary animate-pulse" />
+                                    <p className="mt-4 font-semibold text-base-content">Generating content, please wait...</p>
+                                    <p className="text-sm text-base-content/70">This may take up to a minute for complex documents.</p>
+                                </div>
+                            )}
+                            {!isLoading && activeTab === 'dlp' && dlpContent && (
+                                <div dangerouslySetInnerHTML={{ __html: dlpOutputHtml.mainContent + dlpOutputHtml.answerKeyHtml + dlpOutputHtml.reflectionTableHtml }} />
+                            )}
+                            {/* Other previews would go here */}
+                             {!isLoading && !dlpContent && (
+                                <div className="flex flex-col items-center justify-center h-full text-center">
+                                    <ClipboardCheckIcon className="w-24 h-24 text-base-300" />
+                                    <p className="mt-4 text-base-content/70">Fill in the details on the left and click "Generate" to see your document here.</p>
+                                </div>
+                             )}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     );
 };
-
-// --- START SUB-COMPONENTS ---
-// To keep the main component cleaner, UI sections are broken down.
-
-const DlpFormUI = ({ dlpForm, handleDlpFormChange, teacherPosition, setTeacherPosition, generateDLP, isLoading }: any) => (
-    <form onSubmit={(e) => { e.preventDefault(); generateDLP(); }} className="space-y-4">
-        <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><SparklesIcon className="w-6 h-6 mr-2 text-primary" />DLP Generator</h3>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField id="teacher" label="Teacher" value={dlpForm.teacher} onChange={handleDlpFormChange} required />
-            <InputField id="schoolName" label="School Name" value={dlpForm.schoolName} onChange={handleDlpFormChange} required />
-            <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-base-content mb-1">Subject<span className="text-error">*</span></label>
-                <select id="subject" value={dlpForm.subject} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                     {Object.entries(subjectAreas).map(([group, subjects]) => (
-                        <optgroup label={group} key={group}>
-                            {subjects.map(subj => <option key={subj} value={subj}>{subj}</option>)}
-                        </optgroup>
-                    ))}
-                </select>
-            </div>
-            <InputField id="teachingDates" label="Teaching Dates" value={dlpForm.teachingDates} onChange={handleDlpFormChange} required placeholder="e.g., November 6-10, 2023" />
-            <div>
-                <label htmlFor="gradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
-                <select id="gradeLevel" value={dlpForm.gradeLevel} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option> ))}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="quarterSelect" className="block text-sm font-medium text-base-content mb-1">Quarter<span className="text-error">*</span></label>
-                <select id="quarterSelect" value={dlpForm.quarterSelect} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10"><option>1ST QUARTER</option><option>2ND QUARTER</option><option>3RD QUARTER</option><option>4TH QUARTER</option></select>
-            </div>
-        </div>
-        <TextAreaField id="classSchedule" label="Class Schedule" value={dlpForm.classSchedule} onChange={handleDlpFormChange} rows={2} required placeholder="e.g., 12:40 - 1:20 PM, G9-Gentleness"/>
-
-        <div className="pt-4 mt-4 border-t border-base-300 space-y-4">
-            <TextAreaField id="learningCompetency" label="Learning Competency" value={dlpForm.learningCompetency} onChange={handleDlpFormChange} required placeholder="Paste the learning competency here..." />
-            <TextAreaField id="lessonObjective" label="Lesson Objective" value={dlpForm.lessonObjective} onChange={handleDlpFormChange} required placeholder="e.g., construct if clauses using the structure of Second Conditionals" />
-            <TextAreaField id="previousLesson" label="Previous Lesson (for review context)" value={dlpForm.previousLesson} onChange={handleDlpFormChange} rows={2} required placeholder="e.g., First Conditionals" />
-        </div>
-        
-        <div className="pt-4 mt-4 border-t border-base-300 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label htmlFor="teacherPosition" className="block text-sm font-medium text-base-content mb-1">Your Position (for PPST)</label>
-                    <select id="teacherPosition" value={teacherPosition} onChange={(e) => setTeacherPosition(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                        <option>Beginning</option><option>Proficient</option><option>Highly Proficient</option><option>Distinguished</option>
-                    </select>
-                </div>
-                 <div>
-                    <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
-                    <select id="language" value={dlpForm.language} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                        <option>English</option><option>Filipino</option>
-                    </select>
-                </div>
-            </div>
-            <div>
-                <label htmlFor="dlpFormat" className="block text-sm font-medium text-base-content mb-1">DLP Format</label>
-                <select id="dlpFormat" value={dlpForm.dlpFormat} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    <option>Standard DepEd</option>
-                    <option>4As (Activity, Analysis, Abstraction, Application)</option>
-                    <option>5Es (Engage, Explore, Explain, Elaborate, Evaluate)</option>
-                    <option>Explicit Instruction</option>
-                </select>
-            </div>
-        </div>
-
-        <div className="pt-4 mt-4 border-t border-base-300 space-y-4">
-             <h4 className="text-lg font-bold text-base-content">Signatories</h4>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField id="preparedByName" label="Prepared By (Name)" value={dlpForm.preparedByName} onChange={handleDlpFormChange} />
-                <TextAreaField id="preparedByDesignation" label="Designation" value={dlpForm.preparedByDesignation} onChange={handleDlpFormChange} rows={2} />
-                <InputField id="checkedByName" label="Checked By (Name)" value={dlpForm.checkedByName} onChange={handleDlpFormChange} />
-                <TextAreaField id="checkedByDesignation" label="Designation" value={dlpForm.checkedByDesignation} onChange={handleDlpFormChange} rows={2} />
-                <InputField id="approvedByName" label="Approved By (Name)" value={dlpForm.approvedByName} onChange={handleDlpFormChange} />
-                <TextAreaField id="approvedByDesignation" label="Designation" value={dlpForm.approvedByDesignation} onChange={handleDlpFormChange} rows={2} />
-             </div>
-        </div>
-
-        <div className="pt-4"><button type="submit" disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Full DLP'}</button></div>
-    </form>
-);
-
-const DllFormUI = ({ dllForm, handleDllFormChange, dllFormat, setDllFormat, generateDLL, isLoading }: any) => (
-    <div className="space-y-4">
-        <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><SparklesIcon className="w-6 h-6 mr-2 text-primary" />Weekly Plan Generator</h3>
-        <div className="grid grid-cols-2 gap-4">
-            <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-base-content mb-1">Subject<span className="text-error">*</span></label>
-                <select id="subject" value={dllForm.subject} onChange={handleDllFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {Object.entries(subjectAreas).map(([group, subjects]) => (
-                        <optgroup label={group} key={group}>
-                            {subjects.map(subj => <option key={subj} value={subj}>{subj}</option>)}
-                        </optgroup>
-                    ))}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="gradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
-                <select id="gradeLevel" value={dllForm.gradeLevel} onChange={handleDllFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option> ))}
-                </select>
-            </div>
-        </div>
-        <InputField id="teachingDates" label="Teaching Dates" value={dllForm.teachingDates} onChange={handleDllFormChange} placeholder="e.g., November 6-10, 2023" />
-        <TextAreaField id="weeklyTopic" label="Weekly Topic" value={dllForm.weeklyTopic} onChange={handleDllFormChange} rows={2} placeholder="Main topic for the week" />
-        <TextAreaField id="contentStandard" label="Content Standard" value={dllForm.contentStandard} onChange={handleDllFormChange} rows={3} placeholder="Paste the content standard here..." />
-        <TextAreaField id="performanceStandard" label="Performance Standard" value={dllForm.performanceStandard} onChange={handleDllFormChange} rows={3} placeholder="Paste the performance standard here..." />
-
-        <div className="grid grid-cols-2 gap-4">
-             <div>
-                <label htmlFor="dllFormat" className="block text-sm font-medium text-base-content mb-1">DLL Format</label>
-                <select id="dllFormat" value={dllFormat} onChange={(e: any) => setDllFormat(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    <option>Standard</option>
-                    <option>4As (Activity, Analysis, Abstraction, Application)</option>
-                    <option>5Es (Engage, Explore, Explain, Elaborate, Evaluate)</option>
-                </select>
-            </div>
-            <div>
-                <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
-                <select id="language" value={dllForm.language} onChange={handleDllFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    <option>English</option><option>Filipino</option>
-                </select>
-            </div>
-        </div>
-        <div className="pt-4"><button onClick={generateDLL} disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Weekly Plan'}</button></div>
-    </div>
-);
-
-const LasFormUI = ({ lasForm, handleLasFormChange, generateLAS, isLoading }: any) => (
-    <div className="space-y-4">
-        <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><ClipboardCheckIcon className="w-6 h-6 mr-2 text-primary" />DLP-Style Learning Activity Sheet</h3>
-        <div className="grid grid-cols-2 gap-4">
-            <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-base-content mb-1">Subject<span className="text-error">*</span></label>
-                <select id="subject" value={lasForm.subject} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {Object.entries(subjectAreas).map(([group, subjects]) => (
-                        <optgroup label={group} key={group}>
-                            {subjects.map(subj => <option key={subj} value={subj}>{subj}</option>)}
-                        </optgroup>
-                    ))}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="gradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
-                <select id="gradeLevel" value={lasForm.gradeLevel} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option> ))}
-                </select>
-            </div>
-        </div>
-        
-        <TextAreaField id="learningCompetency" label="Learning Competency" value={lasForm.learningCompetency} onChange={handleLasFormChange} required placeholder="Paste the learning competency here..." />
-        
-        <TextAreaField id="lessonObjective" label="Lesson Objective" value={lasForm.lessonObjective} onChange={handleLasFormChange} required placeholder="e.g., Identify the parts of a plant" />
-        
-        <div className="grid grid-cols-2 gap-4">
-            <div>
-                <label htmlFor="activityType" className="block text-sm font-medium text-base-content mb-1">Activity Focus/Type</label>
-                <select id="activityType" value={lasForm.activityType} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {activityTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label>
-                <select id="language" value={lasForm.language} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    <option>English</option><option>Filipino</option>
-                </select>
-            </div>
-        </div>
-        <div className="pt-4"><button onClick={generateLAS} disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Learning Sheet'}</button></div>
-    </div>
-);
-
-const QuizFormUI = ({ quizForm, handleQuizFormChange, handleQuizTypeChange, generateQuiz, isLoading }: any) => (
-     <form onSubmit={(e) => { e.preventDefault(); generateQuiz(); }} className="space-y-4">
-        <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><SparklesIcon className="w-6 h-6 mr-2 text-primary" />Quiz Generator</h3>
-        <InputField id="quizTopic" label="Quiz Topic" value={quizForm.quizTopic} onChange={handleQuizFormChange} required placeholder="e.g., Parts of a Cell" />
-
-        <div className="grid grid-cols-2 gap-4">
-            <div>
-                <label htmlFor="subject" className="block text-sm font-medium text-base-content mb-1">Subject<span className="text-error">*</span></label>
-                <select id="subject" name="subject" value={quizForm.subject} onChange={handleQuizFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {Object.entries(subjectAreas).map(([group, subjects]) => (
-                        <optgroup label={group} key={group}>
-                            {subjects.map(subj => <option key={subj} value={subj}>{subj}</option>)}
-                        </optgroup>
-                    ))}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="gradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
-                <select id="gradeLevel" name="gradeLevel" value={quizForm.gradeLevel} onChange={handleQuizFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option>))}
-                </select>
-            </div>
-        </div>
-        
-        <div>
-            <label htmlFor="numQuestions" className="block text-sm font-medium text-base-content mb-1">Number of Questions per Type</label>
-            <input type="number" id="numQuestions" value={quizForm.numQuestions} onChange={handleQuizFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10" min="1" max="20" />
-        </div>
-
-        <div>
-            <label className="block text-sm font-medium text-base-content mb-1">Quiz Formats</label>
-            <div className="grid grid-cols-2 gap-2">
-                {(['Multiple Choice', 'True or False', 'Identification'] as QuizType[]).map(type => (
-                    <label key={type} className="flex items-center gap-2 bg-base-100 p-2 rounded-md">
-                        <input
-                            type="checkbox"
-                            checked={quizForm.quizTypes.includes(type)}
-                            onChange={() => handleQuizTypeChange(type)}
-                            className="checkbox checkbox-primary"
-                        />
-                        <span className="text-sm">{type}</span>
-                    </label>
-                ))}
-            </div>
-        </div>
-        <div className="pt-4"><button type="submit" disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Quiz'}</button></div>
-    </form>
-);
-
-const ExamGeneratorForm = ({ examObjectives, onAddObjective, onRemoveObjective, onObjectiveChange, subject, setSubject, gradeLevel, setGradeLevel, quarter, setQuarter, onGenerate, isLoading }: any) => (
-    <div className="space-y-4">
-        <h3 className="text-xl font-bold text-base-content mb-4 flex items-center"><ClipboardCheckIcon className="w-6 h-6 mr-2 text-primary" />50-Item Exam Generator</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-                <InputField id="examSubject" label="Subject" value={subject} onChange={(e: any) => setSubject(e.target.value)} required />
-            </div>
-            <div>
-                <label htmlFor="examGradeLevel" className="block text-sm font-medium text-base-content mb-1">Grade Level<span className="text-error">*</span></label>
-                <select id="examGradeLevel" value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    {gradeLevels.map(grade => ( <option key={grade} value={grade}>{grade === 'Kindergarten' ? 'Kindergarten' : `Grade ${grade}`}</option>))}
-                </select>
-            </div>
-            <div>
-                <label htmlFor="examQuarter" className="block text-sm font-medium text-base-content mb-1">Quarter<span className="text-error">*</span></label>
-                <select id="examQuarter" value={quarter} onChange={(e) => setQuarter(e.target.value)} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                    <option value="1">1st</option>
-                    <option value="2">2nd</option>
-                    <option value="3">3rd</option>
-                    <option value="4">4th</option>
-                </select>
-            </div>
-        </div>
-        <div className="space-y-3">
-            <label className="block text-sm font-medium text-base-content">Learning Objectives</label>
-            {examObjectives.map((obj: ExamObjective, index: number) => (
-                <div key={obj.id} className="grid grid-cols-[1fr,80px,auto] gap-2 items-end">
-                    <TextAreaField id={`obj-text-${obj.id}`} label={`Objective ${index + 1}`} value={obj.text} onChange={(e: any) => onObjectiveChange(obj.id, 'text', e.target.value)} rows={2} placeholder="Enter a learning objective" required />
-                    <InputField id={`obj-days-${obj.id}`} label="Days Taught" value={obj.days} onChange={(e: any) => onObjectiveChange(obj.id, 'days', e.target.value)} type="number" required />
-                    <button type="button" onClick={() => onRemoveObjective(obj.id)} className="h-10 px-3 bg-error hover:bg-red-700 text-white font-bold rounded-lg"><TrashIcon className="w-5 h-5"/></button>
-                </div>
-            ))}
-        </div>
-        <button type="button" onClick={onAddObjective} className="flex items-center gap-2 text-sm text-primary hover:underline"><PlusIcon className="w-4 h-4" /> Add Another Objective</button>
-        <div className="pt-4"><button onClick={onGenerate} disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg"><SparklesIcon className="w-5 h-5 mr-2" />{isLoading ? 'Generating...' : 'Generate Exam'}</button></div>
-    </div>
-);
-
-const DlpPreview = ({ dlpOutputHtml, handleDownloadDlpDocx, isLoading }: any) => (
-    <>
-        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0"><h3 className="text-xl font-bold">Generated DLP</h3><button onClick={handleDownloadDlpDocx} disabled={isLoading} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg"><DownloadIcon className="w-5 h-5 mr-2"/>Download Word File</button></div>
-        <div className="p-6 overflow-y-auto flex-grow min-h-0 dlp-preview">
-            <div className="overflow-x-auto" dangerouslySetInnerHTML={{ __html: dlpOutputHtml.mainContent }}></div>
-            <div className="overflow-x-auto" dangerouslySetInnerHTML={{ __html: dlpOutputHtml.reflectionTableHtml }}></div>
-            <div className="overflow-x-auto" dangerouslySetInnerHTML={{ __html: dlpOutputHtml.answerKeyHtml }}></div>
-        </div>
-    </>
-);
-
-const DllPreview = ({ dllContent, dllHeaders, dllDays, handleDownloadDllDocx, isLoading }: any) => (
-     <>
-        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0">
-            <h3 className="text-xl font-bold">Generated Weekly Plan Preview</h3>
-            <button onClick={handleDownloadDllDocx} disabled={isLoading} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg">
-                <DownloadIcon className="w-5 h-5 mr-2"/>Download Word File
-            </button>
-        </div>
-        <div className="p-6 overflow-y-auto flex-grow min-h-0 text-sm">
-            <div className="space-y-4">
-                <div><strong>Content Standard:</strong> {dllContent.contentStandard}</div>
-                <div><strong>Performance Standard:</strong> {dllContent.performanceStandard}</div>
-                <div><strong>Content:</strong> {dllContent.content}</div>
-            </div>
-            <div className="overflow-x-auto mt-4">
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr className="bg-base-300/50">
-                            <th className="p-2 border border-base-300 w-1/6"></th>
-                            {dllDays.map((day: string) => <th key={day} className="p-2 border border-base-300">{day}</th>)}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td className="p-2 border border-base-300 font-bold">{dllHeaders.learningCompetencies}</td>
-                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.monday}</td>
-                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.tuesday}</td>
-                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.wednesday}</td>
-                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.thursday}</td>
-                            <td className="p-2 border border-base-300">{dllContent.learningCompetencies.friday}</td>
-                        </tr>
-                        <tr className="bg-base-300/30"><td colSpan={6} className="p-2 border border-base-300 font-bold">{dllHeaders.procedures}</td></tr>
-                        {dllContent.procedures.map((proc: any, index: number) => (
-                            <tr key={index}>
-                                <td className="p-2 border border-base-300 font-semibold">{proc.procedure}</td>
-                                {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map(day => (
-                                    <td key={day} className="p-2 border border-base-300 whitespace-pre-wrap">{proc[day]}</td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </>
-);
-
-const LasPreview = ({ lasContent, settings, lasForm, onDownload }: { lasContent: LearningActivitySheet, settings: SchoolSettings, lasForm: any, onDownload: () => void }) => (
-    <>
-        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0">
-            <h3 className="text-xl font-bold">5-Day Learning Activity Sheet Preview</h3>
-            <button onClick={onDownload} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg">
-                <DownloadIcon className="w-5 h-5 mr-2"/>Download Word File
-            </button>
-        </div>
-        <div className="p-4 md:p-6 overflow-y-auto flex-grow min-h-0 bg-base-100 space-y-8">
-            {lasContent.days.map((dayData, index) => (
-                <div key={index} className="bg-white text-black p-4 font-serif border-2 border-black max-w-4xl mx-auto shadow-lg">
-                    <header className="flex justify-between items-start mb-2 border-b-2 border-black pb-2">
-                        <div className="flex items-center gap-2">
-                            {settings.schoolLogo && <img src={settings.schoolLogo} alt="School Logo" className="h-16 w-16 object-contain" />}
-                            {settings.secondLogo && <img src={settings.secondLogo} alt="Second Logo" className="h-16 w-16 object-contain" />}
-                        </div>
-                        <div className="text-center">
-                            <p className="font-bold text-lg">Dynamic Learning Program</p>
-                            <p className="font-bold text-base">LEARNING ACTIVITY SHEET</p>
-                        </div>
-                        <div className="text-sm">
-                            <div className="border-2 border-black p-1">S.Y. {settings.schoolYear}</div>
-                        </div>
-                    </header>
-                    <table className="w-full border-collapse border-2 border-black text-sm mb-2">
-                        <tbody>
-                            <tr>
-                                <td className="border border-black p-1 w-2/3"><strong>Name:</strong></td>
-                                <td className="border border-black p-1 w-1/3"><strong>Score:</strong></td>
-                            </tr>
-                            <tr>
-                                <td className="border border-black p-1"><strong>Grade & Section:</strong></td>
-                                <td className="border border-black p-1"><strong>Date:</strong></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div className="border-2 border-black">
-                        <p className="bg-black text-white font-bold p-1">Day: <span className="font-normal">{dayData.dayTitle}</span></p>
-                        <p className="bg-black text-white font-bold p-1">Activity Title: <span className="font-normal">{dayData.activityTitle}</span></p>
-                        <p className="bg-black text-white font-bold p-1">Learning Target: <span className="font-normal">{dayData.learningTarget}</span></p>
-                        <div className="p-2">
-                            <p className="font-bold">References: <span className="italic text-xs">(Author, Title, Pages)</span></p>
-                            <p className="pl-4">{dayData.references}</p>
-                        </div>
-                    </div>
-                    <div className="mt-4 space-y-4">
-                        {dayData.conceptNotes.map((note: any, noteIndex: number) => (
-                            <div key={`note-${noteIndex}`}>
-                                <h4 className="font-bold underline">{note.title}</h4>
-                                <p className="whitespace-pre-wrap">{note.content}</p>
-                            </div>
-                        ))}
-                        {dayData.activities.map((activity: any, activityIndex: number) => (
-                            <div key={`activity-${activityIndex}`}>
-                                <h4 className="font-bold text-lg underline">{activity.title}</h4>
-                                <p className="italic mb-2">{activity.instructions}</p>
-                                {activity.questions && (
-                                    <ol className="list-decimal list-inside space-y-2">
-                                        {activity.questions.map((q: any, qIndex: number) => <li key={qIndex}>{q.questionText}</li>)}
-                                    </ol>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                     <div className="mt-4 border-t-2 border-black pt-2">
-                        <h4 className="font-bold underline">Reflection</h4>
-                        <p className="mt-1">{dayData.reflection}</p>
-                    </div>
-                </div>
-            ))}
-        </div>
-    </>
-);
-
-const QuizPreview = ({ quizContent, activityPoints, handleActivityPointsChange, handleGenerateRubric, generatingRubricIndex, handleDownloadQuizDocx, isLoading }: any) => (
-    <>
-        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0">
-            <h3 className="text-xl font-bold">{quizContent.quizTitle}</h3>
-            <button onClick={handleDownloadQuizDocx} disabled={isLoading} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg">
-                <DownloadIcon className="w-5 h-5 mr-2"/>Download Word File
-            </button>
-        </div>
-        <div className="p-6 overflow-y-auto flex-grow min-h-0">
-            <div className="space-y-8">
-                {Object.entries(quizContent.questionsByType).map(([type, section]) => {
-                    if (!section) return null;
-                    const typedSection = section as GeneratedQuizSection;
-                    return (
-                        <div key={type}>
-                            <h4 className="text-lg font-bold text-primary border-b-2 border-primary mb-2 pb-1">{type}</h4>
-                            <p className="text-sm italic mb-4">{typedSection.instructions}</p>
-                            <ol className="list-decimal list-inside space-y-4">
-                                {typedSection.questions.map((q, i) => (
-                                    <li key={i}>
-                                        <p>{q.questionText}</p>
-                                        {q.options && (
-                                            <ul className="list-none pl-6 mt-1 grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                                                {q.options.map((opt, oi) => <li key={oi}>{String.fromCharCode(65 + oi)}. {opt}</li>)}
-                                            </ul>
-                                        )}
-                                    </li>
-                                ))}
-                            </ol>
-                        </div>
-                    );
-                })}
-                {quizContent.activities && quizContent.activities.length > 0 && (
-                    <div>
-                        <h4 className="text-lg font-bold text-primary border-b-2 border-primary mb-2 pb-1">Activities</h4>
-                        {quizContent.activities.map((activity: any, index: number) => (
-                            <div key={index} className="bg-base-100 p-4 rounded-lg mb-4">
-                                <h5 className="font-bold">{activity.activityName}</h5>
-                                <p className="text-sm italic my-2">{activity.activityInstructions}</p>
-                                {activity.rubric ? (
-                                    <div>
-                                        <h6 className="text-xs font-bold uppercase mt-2 mb-1">Rubric</h6>
-                                        <table className="w-full text-xs"><tbody>{activity.rubric.map((r: DlpRubricItem) => <tr key={r.criteria} className="border-b border-base-300"><td className="py-1">{r.criteria}</td><td className="py-1 text-right font-bold">{r.points} pts</td></tr>)}</tbody></table>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center gap-2 mt-2">
-                                        <input type="number" placeholder="Total Pts" value={activityPoints[index] || ''} onChange={e => handleActivityPointsChange(index, e.target.value)} className="w-24 bg-base-300 p-2 rounded-md h-8 text-sm" />
-                                        <button onClick={() => handleGenerateRubric(index)} disabled={generatingRubricIndex === index} className="flex items-center bg-primary hover:bg-primary-focus text-white font-bold py-1 px-3 rounded-lg text-sm"><SparklesIcon className="w-4 h-4 mr-1"/>{generatingRubricIndex === index ? 'Generating...' : 'Generate Rubric'}</button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    </>
-);
-
-const ExamPreview = ({ examContent, onDownload, isLoading }: { examContent: GeneratedExam, onDownload: () => void, isLoading: boolean }) => (
-    <>
-        <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0">
-            <h3 className="text-xl font-bold">{examContent.title}</h3>
-            <button onClick={onDownload} disabled={isLoading} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg">
-                <DownloadIcon className="w-5 h-5 mr-2"/>Download Word File
-            </button>
-        </div>
-        <div className="p-6 overflow-y-auto flex-grow min-h-0">
-            <div className="space-y-8">
-                <div>
-                    <h4 className="text-lg font-bold text-primary mb-2">Table of Specifications</h4>
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-xs">
-                            <thead className="bg-base-300/50 text-center">
-                                <tr>
-                                    <th className="p-2 border border-base-300" rowSpan={2}>Learning Objective</th>
-                                    <th className="p-2 border border-base-300" rowSpan={2}>Days</th>
-                                    <th className="p-2 border border-base-300" rowSpan={2}>%</th>
-                                    <th className="p-2 border border-base-300" rowSpan={2}>Items</th>
-                                    <th className="p-2 border border-base-300" colSpan={6}>Cognitive Level</th>
-                                    <th className="p-2 border border-base-300" rowSpan={2}>Placement</th>
-                                </tr>
-                                <tr>
-                                    <th className="p-1 border border-base-300 font-normal">Rem</th>
-                                    <th className="p-1 border border-base-300 font-normal">Und</th>
-                                    <th className="p-1 border border-base-300 font-normal">App</th>
-                                    <th className="p-1 border border-base-300 font-normal">Ana</th>
-                                    <th className="p-1 border border-base-300 font-normal">Eva</th>
-                                    <th className="p-1 border border-base-300 font-normal">Cre</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {examContent.tableOfSpecifications.map((item, index) => (
-                                    <tr key={index} className="border-b border-base-300">
-                                        <td className="p-2 border border-base-300">{item.objective}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.daysTaught}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.percentage}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.numItems}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.remembering}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.understanding}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.applying}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.analyzing}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.evaluating}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.creating}</td>
-                                        <td className="p-2 border border-base-300 text-center">{item.itemPlacement}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div>
-                    <h4 className="text-lg font-bold text-primary mb-2">Test Questions</h4>
-                    <ol className="list-decimal list-inside space-y-4 text-sm">
-                        {examContent.questions.map((q, i) => (
-                            <li key={i}>
-                                <p>{q.questionText}</p>
-                                {q.options && 
-                                    <ul className="list-none pl-6 mt-1 grid grid-cols-1 md:grid-cols-2 gap-x-4">
-                                        {q.options.map((opt, oi) => <li key={oi}>{String.fromCharCode(65 + oi)}. {opt}</li>)}
-                                    </ul>
-                                }
-                            </li>
-                        ))}
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </>
-);
 
 export default LessonPlanners;

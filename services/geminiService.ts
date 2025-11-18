@@ -559,23 +559,31 @@ export const generateLearningActivitySheet = async (options: { subject: string; 
     const { subject, gradeLevel, learningCompetency, lessonObjective, activityType, language } = options;
     const model = "gemini-2.5-pro";
     const prompt = `
-        Create a comprehensive, 5-day learning packet for a DLP-style Learning Activity Sheet (LAS) in ${language} for a Grade ${gradeLevel} ${subject} class. The entire week should focus on scaffolding the single provided learning competency.
+        You are an expert curriculum designer for the Department of Education in the Philippines. Create a comprehensive, 5-day learning packet following the DLP-style Learning Activity Sheet (LAS) format. The entire week must focus on scaffolding the single provided learning competency, with each day building upon the previous one.
 
         **Main Learning Competency:** ${learningCompetency}
         **Main Lesson Objective:** ${lessonObjective}
         **Activity Focus for the week:** ${activityType}
+        **Language:** ${language}
 
-        **Instructions for Generation:**
-        1.  **Generate content for exactly 5 days.** Each day should build upon the last, leading to mastery of the main competency. Day 5 should ideally be a performance task or culminating activity.
-        2.  For each of the 5 days, provide all the necessary fields:
-            - **dayTitle:** A clear title, e.g., "Day 1: Introduction to [Topic]".
-            - **activityTitle:** The specific title for that day's activity sheet.
-            - **learningTarget:** The specific sub-objective for that day.
-            - **references:** Suggest relevant learning materials.
-            - **conceptNotes:** Clear, concise notes explaining the concept for the day. Use markdown for emphasis.
-            - **activities:** Create one or more engaging activities for the day. Include clear instructions and questions.
-            - **reflection:** A single, thought-provoking reflection question related to the day's lesson.
-        3.  Structure the output as a single JSON object containing a 'days' array. Each element in the array is an object representing one day's content. Adhere strictly to the provided JSON schema.
+        **CRITICAL INSTRUCTIONS FOR EACH OF THE 5 DAYS:**
+        1.  **Structure:** Each day's content MUST be self-contained and follow this exact structure: **CONCEPT NOTES**, **ACTIVITY**, and **REFLECTION**.
+        2.  **dayTitle:** Create a clear, concise title for the day's lesson (e.g., "Day 1: Understanding Bias and Prejudice").
+        3.  **activityTitle:** Create a specific title for the activity sheet itself.
+        4.  **learningTarget:** Write a specific, measurable sub-objective for the day that scaffolds towards the main weekly objective.
+        5.  **references:** Suggest relevant learning materials or sources.
+        6.  **conceptNotes Section:** This MUST be an array with **exactly one object**.
+            - The object's \`title\` property must be exactly "CONCEPT NOTES".
+            - The object's \`content\` property should be a clear, detailed explanation of the day's core concept, including definitions and examples. Use markdown for emphasis: **bold text** for key terms, *italic text* for examples, and bullet points starting with '• ' for lists.
+        7.  **activities Section:** This MUST be an array with **exactly one object**.
+            - The object's \`title\` property must start with "ACTIVITY:", followed by a descriptive name (e.g., "ACTIVITY: DEFINE AND MATCH").
+            - The object's \`instructions\` property must contain clear directions for the student, followed by all activity content.
+            - **IMPORTANT:** All activity content, including questions, scenarios, or tables, must be included within the \`instructions\` string. For matching type activities or simple two-column tables, format each row on a new line using " || " as a separator between the columns. For example: \`1. Judging a person before knowing them. || A. Bias\`. Do NOT use the 'questions' field in the schema.
+        8.  **Day 5 Task:** Ensure the activity for Day 5 is a culminating Performance Task.
+        9.  **reflection Section:** This must be a single, thought-provoking question or sentence-completion task related to the day's lesson.
+
+        **Output Format:**
+        Strictly return a single JSON object that adheres to the provided schema. The root object must have a 'days' key, which is an array of 5 day objects, each following the structure detailed above. Do not add any extra text, conversation, or explanations outside the JSON structure.
     `;
     try {
         const response = await callApiProxy({
