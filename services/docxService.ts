@@ -906,6 +906,18 @@ class DocxService {
     public async generateDlpDocx(dlpForm: any, dlpContent: DlpContent, _unused: string, settings: SchoolSettings): Promise<void> {
         const isFilipino = dlpForm.language === 'Filipino';
     
+        const getColorForGrade = (gradeLevel: string): string => {
+            const grade = (gradeLevel || '').toString().toLowerCase().replace('grade', '').trim();
+            switch (grade) {
+                case '7': return 'E2EFDA'; // Light Green
+                case '8': return 'FFF2CC'; // Light Yellow
+                case '9': return 'F8CBAD'; // Light Red
+                case '10': return 'DDEBF7'; // Light Blue
+                default: return 'D9D9D9'; // Default light gray
+            }
+        };
+        const headerColor = getColorForGrade(dlpForm.gradeLevel);
+    
         const boldRun = (text: string): TextRun => new TextRun({ text, bold: true, font: "Times New Roman", size: 22 });
         const normalRun = (text: string): TextRun => new TextRun({ text, font: "Times New Roman", size: 22 });
         const cellBorders: IBordersOptions = {
@@ -914,11 +926,20 @@ class DocxService {
             left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
             right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
         };
-        const mainHeading = (text: string) => new Paragraph({
-            text,
-            heading: HeadingLevel.HEADING_1,
-            border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
-            spacing: { before: 400, after: 200 }
+    
+        const createSectionHeader = (text: string) => new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [new Paragraph({ text, run: { bold: true, font: "Times New Roman", size: 22 } })],
+                            shading: { type: ShadingType.CLEAR, fill: headerColor },
+                            borders: cellBorders,
+                        }),
+                    ],
+                }),
+            ],
         });
     
         const procedureTable = new Table({
@@ -957,6 +978,25 @@ class DocxService {
             })
         });
 
+        const signatoriesTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [33, 34, 33],
+            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
+            rows: [
+                new TableRow({ children: [
+                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inihanda ni:" : "Prepared by:", run: normalRun })] }),
+                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Sinuri ni:" : "Checked by:", run: normalRun })] }),
+                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inaprubahan ni:" : "Approved by:", run: normalRun })] }),
+                ] }),
+                new TableRow({ children: [ new TableCell({ children: [new Paragraph("")] }), new TableCell({ children: [new Paragraph("")] }), new TableCell({ children: [new Paragraph("")] }) ], height: { value: 1000, rule: HeightRule.ATLEAST } }),
+                new TableRow({ children: [
+                    new TableCell({ children: [ new Paragraph({ text: dlpForm.preparedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.preparedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
+                    new TableCell({ children: [ new Paragraph({ text: dlpForm.checkedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.checkedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
+                    new TableCell({ children: [ new Paragraph({ text: dlpForm.approvedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.approvedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
+                ] })
+            ]
+        });
+    
         const doc = new Document({
             numbering: {
                 config: [{
@@ -969,20 +1009,26 @@ class DocxService {
                 children: [
                     new Paragraph({ text: "DETAILED LESSON PLAN", alignment: AlignmentType.CENTER, run: { bold: true, size: 28, font: "Times New Roman" }}),
                     new Paragraph({ text: "" }),
-                    mainHeading(isFilipino ? 'I. MGA LAYUNIN' : 'I. OBJECTIVES'),
+                    
+                    createSectionHeader(isFilipino ? 'I. MGA LAYUNIN' : 'I. OBJECTIVES'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'A. Pamantayang Pangnilalaman: ' : 'A. Content Standard: '), normalRun(dlpContent.contentStandard)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'B. Pamantayan sa Pagganap: ' : 'B. Performance Standard: '), normalRun(dlpContent.performanceStandard)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'C. Mga Kasanayan sa Pagkatuto: ' : 'C. Learning Competency: '), normalRun(dlpForm.learningCompetency)] }),
                     new Paragraph({ text: isFilipino ? 'Sa pagtatapos ng aralin, ang mga mag-aaral ay inaasahang:' : 'At the end of the lesson, the learners should be able to:', run: normalRun, spacing: { before: 200 } }),
                     new Paragraph({ text: dlpForm.lessonObjective, bullet: { level: 0 }, run: normalRun }),
-                    mainHeading(isFilipino ? 'II. NILALAMAN' : 'II. CONTENT'),
+                    
+                    createSectionHeader(isFilipino ? 'II. NILALAMAN' : 'II. CONTENT'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'Paksa: ' : 'Topic: '), normalRun(dlpContent.topic)] }),
-                    mainHeading(isFilipino ? 'III. MGA KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES'),
+                    
+                    createSectionHeader(isFilipino ? 'III. MGA KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'A. Sanggunian: ' : 'A. References: '), normalRun(dlpContent.learningReferences)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'B. Iba pang Kagamitang Panturo: ' : 'B. Other Learning Materials: '), normalRun(dlpContent.learningMaterials)] }),
-                    mainHeading(isFilipino ? 'IV. MGA PAMAMARAAN' : 'IV. PROCEDURE'),
+                    
+                    createSectionHeader(isFilipino ? 'IV. MGA PAMAMARAAN' : 'IV. PROCEDURE'),
                     procedureTable,
-                    mainHeading(isFilipino ? 'V. PAGTATAYA' : 'V. EVALUATING LEARNING'),
+                    
+                    createSectionHeader(isFilipino ? 'V. PAGTATAYA' : 'V. EVALUATING LEARNING'),
+                    // FIX: Changed q.questionText to q.question to match the type definition.
                     ...(dlpContent.evaluationQuestions || []).flatMap((q, index) => [
                         new Paragraph({ text: `${index + 1}. ${q.question}`, run: normalRun }),
                         ...(q.options || []).map((opt, optIndex) => new Paragraph({
@@ -990,30 +1036,17 @@ class DocxService {
                             indent: { left: 720 },
                         }))
                     ]),
+                    
                     new Paragraph({ text: "", pageBreakBefore: true }),
-                    mainHeading(isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION'),
+                    
+                    createSectionHeader(isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION'),
                     this.getHardcodedReflectionTable(isFilipino),
+                    
                     new Paragraph({ text: "", spacing: { after: 800 } }),
-                    new Table({
-                        width: { size: 100, type: WidthType.PERCENTAGE },
-                        columnWidths: [33, 34, 33],
-                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
-                        rows: [
-                            new TableRow({ children: [
-                                new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inihanda ni:" : "Prepared by:", run: normalRun })] }),
-                                new TableCell({ children: [new Paragraph({ text: isFilipino ? "Sinuri ni:" : "Checked by:", run: normalRun })] }),
-                                new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inaprubahan ni:" : "Approved by:", run: normalRun })] }),
-                            ] }),
-                            new TableRow({ children: [ new TableCell({ children: [new Paragraph("")] }), new TableCell({ children: [new Paragraph("")] }), new TableCell({ children: [new Paragraph("")] }) ], height: { value: 1000, rule: HeightRule.ATLEAST } }),
-                            new TableRow({ children: [
-                                new TableCell({ children: [ new Paragraph({ text: dlpForm.preparedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.preparedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
-                                new TableCell({ children: [ new Paragraph({ text: dlpForm.checkedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.checkedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
-                                new TableCell({ children: [ new Paragraph({ text: dlpForm.approvedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.approvedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
-                            ] })
-                        ]
-                    }),
+                    signatoriesTable,
+                    
                     new Paragraph({ text: "", pageBreakBefore: true }),
-                    mainHeading(isFilipino ? 'Susi sa Pagwawasto' : 'Answer Key'),
+                    createSectionHeader(isFilipino ? 'Susi sa Pagwawasto' : 'Answer Key'),
                     answerKeyTable,
                 ],
             }]
