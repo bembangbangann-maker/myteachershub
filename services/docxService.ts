@@ -1141,9 +1141,11 @@ class DocxService {
             sections: [{
                 properties: {
                     page: {
-                        orientation: PageOrientation.LANDSCAPE,
-                        width: 12240,  // 8.5 inches in DXA
-                        height: 18720, // 13 inches in DXA
+                        size: {
+                            orientation: PageOrientation.LANDSCAPE,
+                            width: 18720, // 13 inches
+                            height: 12240, // 8.5 inches
+                        },
                         margin: { top: 720, right: 720, bottom: 720, left: 720 }
                     }
                 },
