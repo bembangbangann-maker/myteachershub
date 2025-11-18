@@ -28,6 +28,7 @@ import {
   VerticalPositionAlign,
   ShadingType,
   ITableCellOptions,
+  IBordersOptions,
 } from 'docx';
 import { Student, SchoolSettings, Attendance, Quarter, SubjectQuarterSettings, StudentQuarterlyRecord, MapehRecordDocxData, GeneratedQuiz, GeneratedQuizQuestion, DlpContent, DlpProcedure, QuizType, DllContent, DllObjectives, DllDailyEntry, DllProcedure as DllProcedureType, DlpRubricItem, StudentProfileDocxData, LearningActivitySheet, GeneratedExam } from '../types';
 import { toast } from 'react-hot-toast';
@@ -795,7 +796,7 @@ class DocxService {
             sections: [{
                 children: [
                     new Paragraph({ text: `Picked Students for ${data.topic}`, heading: HeadingLevel.HEADING_1 }),
-                    ...data.pickedStudents.map(s => new Paragraph({ text: `${s.lastName}, ${s.firstName}`, bullet: { level: 0 } })),
+                    ...data.pickedStudents.map(s => new Paragraph({ text: `${s.lastName}, ${s.firstName}`, bullet: { level: 0 } }))
                 ],
             }],
         });
@@ -902,74 +903,45 @@ class DocxService {
     }
 
     public async generateDlpDocx(dlpForm: any, dlpContent: DlpContent, _unused: string, settings: SchoolSettings): Promise<void> {
-        const schoolLogo = this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 60, 60);
-        const secondLogo = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60);
         const isFilipino = dlpForm.language === 'Filipino';
     
-        const getColorForGrade = (gradeLevel: string): string => {
-            const grade = (gradeLevel || '').toString().toLowerCase().replace('grade', '').trim();
-            switch (grade) {
-                case '7': return 'E2EFDA'; // Light Green
-                case '8': return 'FFF2CC'; // Light Yellow
-                case '9': return 'F8CBAD'; // Light Red
-                case '10': return 'DDEBF7'; // Light Blue
-                default: return 'D9D9D9'; // Default light gray
-            }
-        };
-        const headerColor = getColorForGrade(dlpForm.gradeLevel);
-        
-        const createHeadingTable = (text: string) => new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            rows: [ new TableRow({ children: [ new TableCell({
-                children: [new Paragraph({ text, run: { bold: true, font: "Times New Roman", size: 24 } })],
-                shading: { type: ShadingType.CLEAR, fill: headerColor },
-            }) ] }) ],
-        });
-
         const boldRun = (text: string): TextRun => new TextRun({ text, bold: true, font: "Times New Roman", size: 22 });
         const normalRun = (text: string): TextRun => new TextRun({ text, font: "Times New Roman", size: 22 });
+        const cellBorders: IBordersOptions = {
+            top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+            right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
+        };
+        const mainHeading = (text: string) => new Paragraph({
+            text,
+            heading: HeadingLevel.HEADING_1,
+            border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
+            spacing: { before: 400, after: 200 }
+        });
     
-        const headerTable = new Table({
+        const procedureTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [22, 53, 25],
             rows: [
                 new TableRow({
+                    tableHeader: true,
                     children: [
-                        new TableCell({
-                            children: [new Paragraph({
-                                children: [
-                                    ...(schoolLogo ? [schoolLogo, new TextRun("  ")] : []),
-                                    ...(secondLogo ? [secondLogo] : []),
-                                ],
-                                alignment: AlignmentType.CENTER,
-                            })],
-                            verticalAlign: VerticalAlign.CENTER,
-                            rowSpan: 5,
-                        }),
-                        new TableCell({ children: [new Paragraph({ children: [boldRun(isFilipino ? 'Paaralan: ' : 'School: '), normalRun(dlpForm.schoolName.toUpperCase())] })] }),
-                        new TableCell({
-                            children: [new Paragraph({ text: isFilipino ? 'DETALYADONG BANGHAY-ARALIN SA' : 'DAILY LESSON PLAN IN', alignment: AlignmentType.CENTER, run: { bold: true, size: 24, font: "Times New Roman" } }), new Paragraph({ text: `${dlpForm.subject.toUpperCase()} ${dlpForm.gradeLevel}`, alignment: AlignmentType.CENTER, run: { bold: true, size: 24, font: "Times New Roman" } })],
-                            rowSpan: 2, verticalAlign: VerticalAlign.CENTER
-                        }),
+                        new TableCell({ children: [new Paragraph({ text: isFilipino ? 'Pamamaraan' : 'Procedure', alignment: AlignmentType.CENTER, run: { bold: true, font: "Times New Roman", size: 22 } })], borders: cellBorders, verticalAlign: VerticalAlign.CENTER }),
+                        new TableCell({ children: [new Paragraph({ text: isFilipino ? 'Gawain ng Guro/Mag-aaral' : 'Teacher/Student Activity', alignment: AlignmentType.CENTER, run: { bold: true, font: "Times New Roman", size: 22 } })], borders: cellBorders, verticalAlign: VerticalAlign.CENTER }),
+                        new TableCell({ children: [new Paragraph({ text: 'Aligned PPST Indicators', alignment: AlignmentType.CENTER, run: { bold: true, font: "Times New Roman", size: 22 } })], borders: cellBorders, verticalAlign: VerticalAlign.CENTER }),
                     ]
                 }),
-                new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [boldRun(`${dlpForm.quarterSelect}`)] })] })] }),
-                new TableRow({
+                ...dlpContent.procedures.map(proc => new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ children: [boldRun(isFilipino ? 'Guro: ' : 'Teacher: '), normalRun(dlpForm.teacher)] })] }),
-                        new TableCell({
-                            children: [
-                                new Paragraph({ children: [boldRun(isFilipino ? 'ISKEDYUL NG KLASE' : 'CLASS SCHEDULE')] }),
-                                ...dlpForm.classSchedule.split('\n').map((line: string) => new Paragraph(line))
-                            ],
-                            rowSpan: 3, verticalAlign: VerticalAlign.TOP
-                        }),
+                        new TableCell({ children: [new Paragraph({ text: proc.title, run: { bold: true, font: "Times New Roman", size: 22 } })], borders: cellBorders, verticalAlign: VerticalAlign.CENTER }),
+                        new TableCell({ children: this.parseMarkdownToParagraphs(proc.content), borders: cellBorders }),
+                        new TableCell({ children: [new Paragraph({ text: proc.ppst, run: { italics: true, font: "Times New Roman", size: 22 } })], borders: cellBorders, verticalAlign: VerticalAlign.CENTER }),
                     ]
-                }),
-                new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [boldRun(isFilipino ? 'Asignatura: ' : 'Learning Area: '), normalRun(dlpForm.subject.toUpperCase())] })] })] }),
-                new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [boldRun(isFilipino ? 'Petsa ng Pagtuturo: ' : 'Teaching Dates: '), normalRun(dlpForm.teachingDates)] })] })] }),
-            ],
+                }))
+            ]
         });
-
+        
         const answerKeyTable = new Table({
             width: { size: 40, type: WidthType.PERCENTAGE },
             columnWidths: [10, 90],
@@ -977,8 +949,8 @@ class DocxService {
                 const answerLetter = String.fromCharCode(65 + (q.options?.findIndex(opt => opt === q.answer) ?? -1));
                 return new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ text: `${index + 1}.`, alignment: AlignmentType.LEFT })] }),
-                        new TableCell({ children: [new Paragraph({ text: `${answerLetter}. ${q.answer}` })] })
+                        new TableCell({ children: [new Paragraph({ text: `${index + 1}.`, alignment: AlignmentType.LEFT, run: { font: "Times New Roman", size: 22 } })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                        new TableCell({ children: [new Paragraph({ text: `${answerLetter}. ${q.answer}`, run: { font: "Times New Roman", size: 22 } })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })
                     ]
                 });
             })
@@ -988,102 +960,59 @@ class DocxService {
             numbering: {
                 config: [{
                     reference: "dlp-list",
-                    levels: [{ level: 0, format: LevelFormat.DECIMAL, text: "%1.", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }]
+                    levels: [{ level: 0, format: LevelFormat.DECIMAL, text: "%1.", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 360, hanging: 360 }, run: { font: "Times New Roman", size: 22 } } } }]
                 }]
             },
             sections: [{
-                properties: { page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
+                properties: { page: { margin: { top: 720, right: 1080, bottom: 720, left: 1080 } } },
                 children: [
-                    headerTable,
+                    new Paragraph({ text: "DETAILED LESSON PLAN", alignment: AlignmentType.CENTER, run: { bold: true, size: 28, font: "Times New Roman" }}),
                     new Paragraph({ text: "" }),
-                    createHeadingTable(isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES'),
+                    mainHeading(isFilipino ? 'I. MGA LAYUNIN' : 'I. OBJECTIVES'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'A. Pamantayang Pangnilalaman: ' : 'A. Content Standard: '), normalRun(dlpContent.contentStandard)] }),
                     new Paragraph({ children: [boldRun(isFilipino ? 'B. Pamantayan sa Pagganap: ' : 'B. Performance Standard: '), normalRun(dlpContent.performanceStandard)] }),
-                    new Paragraph({ children: [boldRun(isFilipino ? 'C. Kasanayan sa Pagkatuto: ' : 'C. Learning Competency: '), normalRun(dlpForm.learningCompetency)] }),
-                    new Paragraph({ text: isFilipino ? 'Sa pagtatapos ng aralin, ang mga mag-aaral ay inaasahang:' : 'At the end of the lesson, the learners should be able to:', spacing: { before: 100 } }),
-                    new Paragraph({ text: dlpForm.lessonObjective, bullet: { level: 0 } }),
-                    new Paragraph({ text: "" }),
-                    createHeadingTable(isFilipino ? 'II. NILALAMAN' : 'II. CONTENT'),
+                    new Paragraph({ children: [boldRun(isFilipino ? 'C. Mga Kasanayan sa Pagkatuto: ' : 'C. Learning Competency: '), normalRun(dlpForm.learningCompetency)] }),
+                    new Paragraph({ text: isFilipino ? 'Sa pagtatapos ng aralin, ang mga mag-aaral ay inaasahang:' : 'At the end of the lesson, the learners should be able to:', run: normalRun, spacing: { before: 200 } }),
+                    new Paragraph({ text: dlpForm.lessonObjective, bullet: { level: 0 }, run: normalRun }),
+                    mainHeading(isFilipino ? 'II. NILALAMAN' : 'II. CONTENT'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'Paksa: ' : 'Topic: '), normalRun(dlpContent.topic)] }),
-                    new Paragraph({ text: "" }),
-                    createHeadingTable(isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES'),
+                    mainHeading(isFilipino ? 'III. MGA KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES'),
                     new Paragraph({ children: [boldRun(isFilipino ? 'A. Sanggunian: ' : 'A. References: '), normalRun(dlpContent.learningReferences)] }),
-                    new Paragraph({ children: [boldRun(isFilipino ? 'B. Kagamitan: ' : 'B. Materials: '), normalRun(dlpContent.learningMaterials)] }),
-                    new Paragraph({ text: "" }),
-                    createHeadingTable(isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURE'),
-                    new Table({
-                        width: { size: 100, type: WidthType.PERCENTAGE },
-                        columnWidths: [25, 45, 30],
-                        rows: [
-                            new TableRow({
-                                tableHeader: true,
-                                children: [
-                                    new TableCell({ children: [new Paragraph({ text: isFilipino ? 'Pamamaraan' : 'Procedure', alignment: AlignmentType.CENTER, run: { bold: true } })] }),
-                                    new TableCell({ children: [new Paragraph({ text: isFilipino ? 'Gawain ng Guro/Mag-aaral' : 'Teacher/Student Activity', alignment: AlignmentType.CENTER, run: { bold: true } })] }),
-                                    new TableCell({ children: [new Paragraph({ text: 'Aligned PPST Indicators', alignment: AlignmentType.CENTER, run: { bold: true } })] }),
-                                ]
-                            }),
-                            ...dlpContent.procedures.flatMap(proc => new TableRow({
-                                children: [
-                                    new TableCell({ children: [new Paragraph({ text: proc.title, run: { bold: true } })], verticalAlign: VerticalAlign.CENTER }),
-                                    new TableCell({ children: this.parseMarkdownToParagraphs(proc.content) }),
-                                    new TableCell({ children: [new Paragraph({ text: proc.ppst, run: { italics: true } })], verticalAlign: VerticalAlign.CENTER }),
-                                ]
-                            }))
-                        ]
-                    }),
-                    new Paragraph({ text: "" }),
-                    createHeadingTable(isFilipino ? 'V. PAGTATAYA' : 'V. EVALUATION'),
+                    new Paragraph({ children: [boldRun(isFilipino ? 'B. Iba pang Kagamitang Panturo: ' : 'B. Other Learning Materials: '), normalRun(dlpContent.learningMaterials)] }),
+                    mainHeading(isFilipino ? 'IV. MGA PAMAMARAAN' : 'IV. PROCEDURE'),
+                    procedureTable,
+                    mainHeading(isFilipino ? 'V. PAGTATAYA' : 'V. EVALUATING LEARNING'),
                     ...(dlpContent.evaluationQuestions || []).flatMap((q, index) => [
-                        new Paragraph({
-                            children: [new TextRun({ text: `${index + 1}. ${q.question}` })],
-                            numbering: { reference: "dlp-list", level: 0 },
-                        }),
+                        new Paragraph({ text: `${index + 1}. ${q.question}`, run: normalRun }),
                         ...(q.options || []).map((opt, optIndex) => new Paragraph({
-                            children: [new TextRun({ text: `${String.fromCharCode(97 + optIndex)}. ${opt}` })],
+                            children: [new TextRun({ text: `${String.fromCharCode(97 + optIndex)}. ${opt}`, ...normalRun })],
                             indent: { left: 720 },
                         }))
                     ]),
                     new Paragraph({ text: "", pageBreakBefore: true }),
-                    
-                    new Table({ // Reflection Header
-                        width: { size: 100, type: WidthType.PERCENTAGE },
-                        rows: [ new TableRow({ children: [ new TableCell({
-                            children: [new Paragraph({ text: isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION', run: { bold: true, font: "Times New Roman", size: 24 } })],
-                            shading: { type: ShadingType.CLEAR, fill: "F8CBAD" }, // Light Red/Pink
-                        }) ] }) ],
-                    }),
+                    mainHeading(isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION'),
                     this.getHardcodedReflectionTable(isFilipino),
-
                     new Paragraph({ text: "", spacing: { after: 800 } }),
                     new Table({
                         width: { size: 100, type: WidthType.PERCENTAGE },
                         columnWidths: [33, 34, 33],
                         borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
                         rows: [
-                            new TableRow({
-                                children: [
-                                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inihanda ni:" : "Prepared by:" })] }),
-                                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Sinuri ni:" : "Checked by:" })] }),
-                                    new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inaprubahan ni:" : "Approved by:" })] }),
-                                ]
-                            }),
-                            new TableRow({
-                                children: [ new TableCell({ children: [new Paragraph({ text: "" })] }), new TableCell({ children: [new Paragraph({ text: "" })] }), new TableCell({ children: [new Paragraph({ text: "" })] }), ],
-                                height: { value: 1000, rule: HeightRule.ATLEAST }
-                            }),
-                            new TableRow({
-                                children: [
-                                    new TableCell({ children: [ new Paragraph({ text: dlpForm.preparedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dlpForm.preparedByDesignation, alignment: AlignmentType.CENTER }) ]}),
-                                    new TableCell({ children: [ new Paragraph({ text: dlpForm.checkedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dlpForm.checkedByDesignation, alignment: AlignmentType.CENTER }) ]}),
-                                    new TableCell({ children: [ new Paragraph({ text: dlpForm.approvedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dlpForm.approvedByDesignation, alignment: AlignmentType.CENTER }) ]}),
-                                ]
-                            })
+                            new TableRow({ children: [
+                                new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inihanda ni:" : "Prepared by:", run: normalRun })] }),
+                                new TableCell({ children: [new Paragraph({ text: isFilipino ? "Sinuri ni:" : "Checked by:", run: normalRun })] }),
+                                new TableCell({ children: [new Paragraph({ text: isFilipino ? "Inaprubahan ni:" : "Approved by:", run: normalRun })] }),
+                            ] }),
+                            new TableRow({ children: [ new TableCell({ children: [new Paragraph("")] }), new TableCell({ children: [new Paragraph("")] }), new TableCell({ children: [new Paragraph("")] }) ], height: { value: 1000, rule: HeightRule.ATLEAST } }),
+                            new TableRow({ children: [
+                                new TableCell({ children: [ new Paragraph({ text: dlpForm.preparedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.preparedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
+                                new TableCell({ children: [ new Paragraph({ text: dlpForm.checkedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.checkedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
+                                new TableCell({ children: [ new Paragraph({ text: dlpForm.approvedByName, alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE }, ...normalRun } }), new Paragraph({ text: dlpForm.approvedByDesignation, alignment: AlignmentType.CENTER, run: normalRun }) ]}),
+                            ] })
                         ]
                     }),
                     new Paragraph({ text: "", pageBreakBefore: true }),
-                    new Paragraph({ text: isFilipino ? 'Susi sa Pagwawasto (Para sa Pagtataya)' : 'Answer Key (For Evaluation)', heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER }),
-                    new Paragraph(""),
+                    mainHeading(isFilipino ? 'Susi sa Pagwawasto' : 'Answer Key'),
                     answerKeyTable,
                 ],
             }]
@@ -1095,57 +1024,82 @@ class DocxService {
     
     public async generateDllDocx(dllExportData: any, dllContent: DllContent, settings: SchoolSettings): Promise<void> {
         const isFilipino = dllExportData.language === 'Filipino';
-        
+
         const getColorForGrade = (gradeLevel: string): string => {
             const grade = (gradeLevel || '').toString().toLowerCase().replace('grade', '').trim();
             switch (grade) {
-                case '7': return 'E2EFDA'; // Light Green
-                case '8': return 'FFF2CC'; // Light Yellow
-                case '9': return 'F8CBAD'; // Light Red
-                case '10': return 'DDEBF7'; // Light Blue
-                default: return 'D9D9D9'; // Default light gray
+                case '7': return 'E2EFDA';
+                case '8': return 'FFF2CC';
+                case '9': return 'F8CBAD';
+                case '10': return 'DDEBF7';
+                default: return 'D9D9D9';
             }
         };
 
         const headerColor = getColorForGrade(dllExportData.gradeLevel);
-        
         const headerCellStyle: ITableCellOptions = {
             shading: { type: ShadingType.CLEAR, fill: headerColor },
-            columnSpan: 6,
         };
 
         const createHeaderRow = (text: string) => new TableRow({
-            children: [ new TableCell({ ...headerCellStyle, children: [new Paragraph({ text, run: { bold: true } })] }) ]
+            children: [new TableCell({ ...headerCellStyle, children: [new Paragraph({ text, run: { bold: true } })], columnSpan: 6 })]
         });
-        
+
+        const headerInfoTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [3500, 1500, 3500, 1500],
+            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({ verticalAlign: VerticalAlign.TOP, children: [new Paragraph({ children: [new TextRun({ text: "School: ", bold: true }), new TextRun(settings.schoolName)] })] }),
+                        new TableCell({ verticalAlign: VerticalAlign.TOP, children: [new Paragraph({ children: [new TextRun({ text: "Grade Level: ", bold: true }), new TextRun(dllExportData.gradeLevel)] })] }),
+                        new TableCell({ verticalAlign: VerticalAlign.TOP, children: [new Paragraph({ children: [new TextRun({ text: "Teacher: ", bold: true }), new TextRun(settings.teacherName)] })] }),
+                        new TableCell({ verticalAlign: VerticalAlign.TOP, children: [new Paragraph({ children: [new TextRun({ text: "Learning Area: ", bold: true }), new TextRun(dllExportData.subject)] })] }),
+                    ],
+                }),
+                new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Teaching Dates & Time: ", bold: true }), new TextRun(dllExportData.teachingDates)] })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Quarter: ", bold: true }), new TextRun(dllExportData.quarter)] })] }),
+                        new TableCell({ children: [], columnSpan: 2 }),
+                    ],
+                }),
+            ],
+        });
+
+        const signatoriesTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [33, 34, 33],
+            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
+            rows: [
+                new TableRow({ children: [ new TableCell({ children: [new Paragraph(isFilipino ? "Inihanda ni:" : "Prepared by:")] }), new TableCell({ children: [new Paragraph(isFilipino ? "Sinuri ni:" : "Checked by:")] }), new TableCell({ children: [new Paragraph(isFilipino ? "Inaprubahan ni:" : "Approved by:")] }) ] }),
+                new TableRow({ children: [ new TableCell({ children: [new Paragraph("")] }), new TableCell({ children: [new Paragraph("")] }), new TableCell({ children: [new Paragraph("")] }) ], height: { value: 1000, rule: HeightRule.ATLEAST } }),
+                new TableRow({
+                    children: [
+                        new TableCell({ children: [ new Paragraph({ text: (dllExportData.preparedByName || settings.teacherName).toUpperCase(), alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dllExportData.preparedByDesignation || "Teacher", alignment: AlignmentType.CENTER }) ] }),
+                        new TableCell({ children: [ new Paragraph({ text: (dllExportData.checkedByName || settings.checkedBy).toUpperCase(), alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dllExportData.checkedByDesignation || settings.checkerDesignation, alignment: AlignmentType.CENTER }) ] }),
+                        new TableCell({ children: [ new Paragraph({ text: (dllExportData.approvedByName || settings.principalName).toUpperCase(), alignment: AlignmentType.CENTER, run: { bold: true, underline: { type: UnderlineType.SINGLE } } }), new Paragraph({ text: dllExportData.approvedByDesignation || settings.principalDesignation, alignment: AlignmentType.CENTER }) ] }),
+                    ],
+                }),
+            ],
+        });
+
         const doc = new Document({
             sections: [{
                 properties: {
                     page: {
-                        size: {
-                            orientation: PageOrientation.LANDSCAPE,
-                            // Note: docx library requires portrait dimensions, which are then rotated.
-                            // For 8.5" x 13" landscape, we provide width 8.5" and height 13".
-                            width: 12240,  // 8.5 inches in DXA
-                            height: 18720, // 13 inches in DXA
-                        },
-                        margin: { top: 720, right: 720, bottom: 720, left: 720 } // 0.5 inch margins
+                        size: { orientation: PageOrientation.LANDSCAPE, width: 18720, height: 12240 },
+                        margin: { top: 720, right: 720, bottom: 720, left: 720 }
                     }
                 },
                 children: [
-                    new Paragraph({ text: isFilipino ? "PANG-ARAW-ARAW NA TALA SA PAGTUTURO" : "DAILY LESSON LOG", alignment: AlignmentType.CENTER, run: { bold: true, size: 28 } }),
+                    new Paragraph({ text: isFilipino ? "PANG-ARAW-ARAW NA TALA SA PAGTUTURO" : "DAILY LESSON LOG", alignment: AlignmentType.CENTER, run: { bold: true, size: 24 } }),
+                    headerInfoTable,
+                    new Paragraph(""),
                     new Table({
                         width: { size: 100, type: WidthType.PERCENTAGE },
-                        columnWidths: [20, 30, 20, 30],
-                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
-                        rows: [
-                            new TableRow({ children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: isFilipino ? 'Paaralan: ' : 'School: ', bold: true }), new TextRun(settings.schoolName)] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: isFilipino ? 'Baitang: ' : 'Grade Level: ', bold: true }), new TextRun(dllExportData.gradeLevel)] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: isFilipino ? 'Guro: ' : 'Teacher: ', bold: true }), new TextRun(settings.teacherName)] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: isFilipino ? 'Asignatura: ' : 'Learning Area: ', bold: true }), new TextRun(dllExportData.subject)] })] }) ] }),
-                            new TableRow({ children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: isFilipino ? 'Petsa/Oras: ' : 'Teaching Dates & Time: ', bold: true }), new TextRun(dllExportData.teachingDates)] })] }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: isFilipino ? 'Markahan: ' : 'Quarter: ', bold: true }), new TextRun(dllExportData.quarter)] })] }), new TableCell({ children: [] }), new TableCell({ children: [] }) ] }),
-                        ]
-                    }),
-                    new Table({
-                        width: { size: 100, type: WidthType.PERCENTAGE },
-                        columnWidths: [1000, 1000, 1000, 1000, 1000, 1000].map(w => w * 1.5), // Adjusting widths
+                        columnWidths: [1500, 1500, 1500, 1500, 1500, 1500],
                         rows: [
                             new TableRow({
                                 tableHeader: true,
@@ -1185,7 +1139,9 @@ class DocxService {
                             createHeaderRow(isFilipino ? "VI. PAGNINILAY" : "VI. REFLECTION"),
                             ...this.getHardcodedReflectionRows(isFilipino),
                         ]
-                    })
+                    }),
+                    new Paragraph({ text: "", spacing: { after: 400 } }),
+                    signatoriesTable,
                 ],
             }],
         });
