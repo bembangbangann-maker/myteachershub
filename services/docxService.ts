@@ -30,7 +30,8 @@ import {
   ITableCellOptions,
   IBordersOptions,
 } from 'docx';
-import { Student, SchoolSettings, Attendance, Quarter, SubjectQuarterSettings, StudentQuarterlyRecord, MapehRecordDocxData, GeneratedQuiz, GeneratedQuizQuestion, DlpContent, DlpProcedure, QuizType, DllContent, DllObjectives, DllDailyEntry, DllProcedure as DllProcedureType, DlpRubricItem, StudentProfileDocxData, LearningActivitySheet, GeneratedExam } from '../types';
+// FIX: Import the 'GeneratedQuizSection' type to resolve a 'Cannot find name' error.
+import { Student, SchoolSettings, Attendance, Quarter, SubjectQuarterSettings, StudentQuarterlyRecord, MapehRecordDocxData, GeneratedQuiz, GeneratedQuizQuestion, GeneratedQuizSection, DlpContent, DlpProcedure, QuizType, DllContent, DllObjectives, DllDailyEntry, DllProcedure as DllProcedureType, DlpRubricItem, StudentProfileDocxData, LearningActivitySheet, GeneratedExam } from '../types';
 import { toast } from 'react-hot-toast';
 
 interface SummaryOfGradesDocxData {
@@ -1024,7 +1025,7 @@ class DocxService {
     
     public async generateDllDocx(dllExportData: any, dllContent: DllContent, settings: SchoolSettings): Promise<void> {
         const isFilipino = dllExportData.language === 'Filipino';
-
+    
         const getColorForGrade = (gradeLevel: string): string => {
             const grade = (gradeLevel || '').toString().toLowerCase().replace('grade', '').trim();
             switch (grade) {
@@ -1035,39 +1036,57 @@ class DocxService {
                 default: return 'D9D9D9';
             }
         };
-
+    
         const headerColor = getColorForGrade(dllExportData.gradeLevel);
         const headerCellStyle: ITableCellOptions = {
             shading: { type: ShadingType.CLEAR, fill: headerColor },
+            verticalAlign: VerticalAlign.CENTER,
         };
-
+    
         const createHeaderRow = (text: string) => new TableRow({
-            children: [new TableCell({ ...headerCellStyle, children: [new Paragraph({ text, run: { bold: true } })], columnSpan: 6 })]
+            children: [new TableCell({ ...headerCellStyle, children: [new Paragraph({ text, run: { bold: true, font: "Times New Roman", size: 20 } })], columnSpan: 6 })]
         });
-
+        
+        const para = (text: string, options: IParagraphOptions = {}) => new Paragraph({ text, ...options, run: { ...options.run, font: "Times New Roman", size: 20 }});
+        const boldPara = (text: string, options: IParagraphOptions = {}) => para(text, { ...options, run: { ...options.run, bold: true }});
+    
         const headerInfoTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            columnWidths: [3500, 1500, 3500, 1500],
+            columnWidths: [15, 30, 15, 30],
             borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
             rows: [
                 new TableRow({
                     children: [
-                        new TableCell({ verticalAlign: VerticalAlign.TOP, children: [new Paragraph({ children: [new TextRun({ text: "School: ", bold: true }), new TextRun(settings.schoolName)] })] }),
-                        new TableCell({ verticalAlign: VerticalAlign.TOP, children: [new Paragraph({ children: [new TextRun({ text: "Grade Level: ", bold: true }), new TextRun(dllExportData.gradeLevel)] })] }),
-                        new TableCell({ verticalAlign: VerticalAlign.TOP, children: [new Paragraph({ children: [new TextRun({ text: "Teacher: ", bold: true }), new TextRun(settings.teacherName)] })] }),
-                        new TableCell({ verticalAlign: VerticalAlign.TOP, children: [new Paragraph({ children: [new TextRun({ text: "Learning Area: ", bold: true }), new TextRun(dllExportData.subject)] })] }),
+                        new TableCell({ children: [boldPara("School:")], verticalAlign: VerticalAlign.TOP }),
+                        new TableCell({ children: [para(settings.schoolName)], verticalAlign: VerticalAlign.TOP, columnSpan: 3 }),
                     ],
                 }),
                 new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Teaching Dates & Time: ", bold: true }), new TextRun(dllExportData.teachingDates)] })] }),
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Quarter: ", bold: true }), new TextRun(dllExportData.quarter)] })] }),
+                        new TableCell({ children: [boldPara("Teaching Dates & Time:")], verticalAlign: VerticalAlign.TOP }),
+                        new TableCell({ children: [para(dllExportData.teachingDates)], verticalAlign: VerticalAlign.TOP }),
+                        new TableCell({ children: [boldPara("Grade Level:")], verticalAlign: VerticalAlign.TOP }),
+                        new TableCell({ children: [para(dllExportData.gradeLevel)], verticalAlign: VerticalAlign.TOP }),
+                    ],
+                }),
+                 new TableRow({
+                    children: [
+                        new TableCell({ children: [boldPara("Teacher:")], verticalAlign: VerticalAlign.TOP }),
+                        new TableCell({ children: [para(settings.teacherName)], verticalAlign: VerticalAlign.TOP }),
+                        new TableCell({ children: [boldPara("Learning Area:")], verticalAlign: VerticalAlign.TOP }),
+                        new TableCell({ children: [para(dllExportData.subject)], verticalAlign: VerticalAlign.TOP }),
+                    ],
+                }),
+                new TableRow({
+                    children: [
                         new TableCell({ children: [], columnSpan: 2 }),
+                        new TableCell({ children: [boldPara("Quarter:")], verticalAlign: VerticalAlign.TOP }),
+                        new TableCell({ children: [para(dllExportData.quarter)], verticalAlign: VerticalAlign.TOP }),
                     ],
                 }),
             ],
         });
-
+    
         const signatoriesTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             columnWidths: [33, 34, 33],
@@ -1084,17 +1103,19 @@ class DocxService {
                 }),
             ],
         });
-
+    
         const doc = new Document({
             sections: [{
                 properties: {
                     page: {
-                        size: { orientation: PageOrientation.LANDSCAPE, width: 18720, height: 12240 },
+                        orientation: PageOrientation.LANDSCAPE,
+                        width: 18720, // 13 inches in DXA
+                        height: 12240, // 8.5 inches in DXA
                         margin: { top: 720, right: 720, bottom: 720, left: 720 }
                     }
                 },
                 children: [
-                    new Paragraph({ text: isFilipino ? "PANG-ARAW-ARAW NA TALA SA PAGTUTURO" : "DAILY LESSON LOG", alignment: AlignmentType.CENTER, run: { bold: true, size: 24 } }),
+                    new Paragraph({ text: isFilipino ? "PANG-ARAW-ARAW NA TALA SA PAGTUTURO" : "DAILY LESSON LOG", alignment: AlignmentType.CENTER, run: { bold: true, size: 24, font: "Times New Roman" }, spacing: { after: 200 } }),
                     headerInfoTable,
                     new Paragraph(""),
                     new Table({
@@ -1224,16 +1245,16 @@ class DocxService {
         });
     
         const contentParagraphs = [
-            ...lasContent.conceptNotes.flatMap(note => [
+            ...lasContent.conceptNotes.flatMap((note: any) => [
                 new Paragraph({ text: note.title, heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 100 } }),
                 ...this.parseLasMarkdown(note.content),
             ]),
-            ...lasContent.activities.flatMap(activity => [
+            ...lasContent.activities.flatMap((activity: any) => [
                 new Paragraph({ text: activity.title, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }),
                 new Paragraph({ text: activity.instructions, run: { ...normalText, italics: true }, spacing: { after: 200 } }),
-                ...(activity.questions ? activity.questions.flatMap((q, index) => [
+                ...(activity.questions ? activity.questions.flatMap((q: any, index: number) => [
                     new Paragraph({ text: `${index + 1}. ${q.questionText}`, run: normalText }),
-                    ...(q.options ? q.options.map((opt, optIndex) => new Paragraph({ text: `${String.fromCharCode(97 + optIndex)}. ${opt}`, indent: { left: 720 }, run: normalText })) : [new Paragraph({ text: "________________________________", spacing: { before: 200, after: 200 } })]),
+                    ...(q.options ? q.options.map((opt: string, optIndex: number) => new Paragraph({ text: `${String.fromCharCode(97 + optIndex)}. ${opt}`, indent: { left: 720 }, run: normalText })) : [new Paragraph({ text: "________________________________", spacing: { before: 200, after: 200 } })]),
                 ]) : []),
             ]),
         ];
@@ -1266,6 +1287,7 @@ class DocxService {
                     new Paragraph({text: ''}),
                      ...Object.entries(quizContent.questionsByType).flatMap(([type, section]) => {
                          if (!section) return [];
+                         const typedSection = section as GeneratedQuizSection;
                          return [
                             new Paragraph({ text: type, heading: HeadingLevel.HEADING_2 }),
                             ...section.questions.map((q, i) => new Paragraph({ text: `${i+1}. ${q.questionText}`, numbering: { reference: "quiz-num", level: 0 } }))

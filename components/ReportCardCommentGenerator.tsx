@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Modal from './Modal';
 import { generateReportCardComment } from '../services/geminiService';
 import { Student, Grade, Anecdote } from '../types';
-import { SparklesIcon, ClipboardIcon } from './icons';
+import { RefreshCwIcon, SparklesIcon, ClipboardIcon } from './icons';
 import { toast } from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 
@@ -66,9 +66,9 @@ const ReportCardCommentGenerator: React.FC<ReportCardCommentGeneratorProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} title={`AI Report Card Comment for ${student.firstName}`}>
       {isLoading && (
         <div className="text-center p-8">
-          <SparklesIcon className="w-12 h-12 text-primary mx-auto animate-pulse" />
-          <p className="mt-4 text-lg">Generating comment...</p>
-          <p className="text-sm text-base-content">The AI is analyzing grades and records.</p>
+          <RefreshCwIcon className="w-12 h-12 text-primary mx-auto animate-spin" />
+          <p className="mt-4 text-lg font-bold">HUBert's AI is generating a comment...</p>
+          <p className="text-sm text-base-content mt-1">Analyzing grades and records. This may take a moment.</p>
         </div>
       )}
       {error && (

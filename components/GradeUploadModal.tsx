@@ -5,7 +5,7 @@ import Modal from './Modal';
 import CameraCapture from './CameraCapture';
 import { extractGradesFromImage } from '../services/geminiService';
 import { Student, Grade, ExtractedGrade, Quarter, GradeType } from '../types';
-import { UploadIcon, CameraIcon, SparklesIcon } from './icons';
+import { UploadIcon, CameraIcon, RefreshCwIcon } from './icons';
 import { toast } from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 
@@ -103,9 +103,9 @@ const GradeUploadModal: React.FC<GradeUploadModalProps> = ({ isOpen, onClose }) 
       case 'processing':
         return (
           <div className="text-center p-8">
-            <SparklesIcon className="w-12 h-12 text-primary mx-auto animate-pulse" />
-            <p className="mt-4 text-lg">AI is extracting grades...</p>
-            <p className="text-sm text-base-content">This may take a moment.</p>
+            <RefreshCwIcon className="w-12 h-12 text-primary mx-auto animate-spin" />
+            <p className="mt-4 text-lg font-bold">HUBert's AI is extracting grades...</p>
+            <p className="text-sm text-base-content mt-1">This may take a moment.</p>
           </div>
         );
       case 'camera':

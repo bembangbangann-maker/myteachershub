@@ -6,7 +6,7 @@ import ConfirmationModal from './ConfirmationModal';
 import StudentForm from './StudentForm';
 import ImportInfoModal from './ImportInfoModal';
 import AttendanceGrid from './AttendanceGrid';
-import { PlusIcon, UploadIcon, DownloadIcon, SparklesIcon } from './icons';
+import { PlusIcon, UploadIcon, DownloadIcon, SparklesIcon, RefreshCwIcon } from './icons';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
@@ -261,7 +261,7 @@ const Students: React.FC = () => {
     if (!aiCommand.trim() || !selectedBatchId) return;
 
     setIsAiProcessing(true);
-    const toastId = toast.loading("AI is processing your command...");
+    const toastId = toast.loading("HUBert's AI is processing your command...");
 
     try {
       const result = await processAttendanceCommand(aiCommand, filteredStudents);
@@ -440,8 +440,8 @@ const Students: React.FC = () => {
               className="flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
               disabled={isAiProcessing || !aiCommand.trim()}
             >
-              <SparklesIcon className={`w-5 h-5 mr-2 ${isAiProcessing ? 'animate-spin' : ''}`} />
-              {isAiProcessing ? 'Processing...' : 'Process Command'}
+              <RefreshCwIcon className={`w-5 h-5 mr-2 ${isAiProcessing ? 'animate-spin' : ''}`} />
+              {isAiProcessing ? "HUBert's AI is processing..." : 'Process Command'}
             </button>
           </div>
         </form>

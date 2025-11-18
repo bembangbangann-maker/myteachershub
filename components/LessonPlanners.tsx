@@ -4,7 +4,7 @@ import { useAppContext } from '../contexts/AppContext';
 import { generateDlpContent, generateQuizContent, generateRubricForActivity, generateDllContent, generateLearningActivitySheet, generateExam } from '../services/geminiService';
 import { DlpContent, GeneratedQuiz, QuizType, DlpRubricItem, GeneratedQuizSection, DllContent, DlpProcedure, LearningActivitySheet, SchoolSettings, ExamObjective, GeneratedExam } from '../types';
 import Header from './Header';
-import { SparklesIcon, DownloadIcon, ClipboardCheckIcon, PlusIcon, TrashIcon } from './icons';
+import { SparklesIcon, DownloadIcon, ClipboardCheckIcon, PlusIcon, TrashIcon, RefreshCwIcon } from './icons';
 import { docxService } from '../services/docxService';
 
 const TabButton: React.FC<{ label: string, icon: React.ReactNode, isActive: boolean, onClick: () => void }> = ({ label, icon, isActive, onClick }) => (
@@ -685,7 +685,15 @@ const LessonPlanners: React.FC = () => {
                     </div>
                     {/* Right Column: Previews */}
                      <div className="lg:col-span-2 bg-base-200 rounded-xl shadow-lg flex flex-col">
-                        {isLoading && (<div className="flex-grow flex items-center justify-center text-center p-16"><div className="flex flex-col items-center"><SparklesIcon className="w-16 h-16 mx-auto text-primary animate-pulse mb-4" /><h3 className="text-2xl font-bold">AI is Generating...</h3><p className="mt-2">This may take a moment.</p></div></div>)}
+                        {isLoading && (
+                            <div className="flex-grow flex items-center justify-center text-center p-16">
+                                <div className="flex flex-col items-center">
+                                    <RefreshCwIcon className="w-16 h-16 mx-auto text-primary animate-spin mb-4" />
+                                    <h3 className="text-2xl font-bold">HUBert's AI is Generating...</h3>
+                                    <p className="mt-2">This may take a moment.</p>
+                                </div>
+                            </div>
+                        )}
                         {!isLoading && activeTab === 'dlp' && !dlpContent && (<div className="flex-grow flex items-center justify-center text-center p-16"><div><h3 className="text-2xl font-bold">DLP Preview</h3><p className="mt-2">Your generated Daily Lesson Plan will appear here.</p></div></div>)}
                         {!isLoading && activeTab === 'dll' && !dllContent && (<div className="flex-grow flex items-center justify-center text-center p-16"><div><h3 className="text-2xl font-bold">Weekly Plan Preview</h3><p className="mt-2">Your generated Weekly Plan will appear here.</p></div></div>)}
                         {!isLoading && activeTab === 'quiz' && !quizContent && (<div className="flex-grow flex items-center justify-center text-center p-16"><div><h3 className="text-2xl font-bold">Quiz Preview</h3><p className="mt-2">Your generated quiz will appear here.</p></div></div>)}

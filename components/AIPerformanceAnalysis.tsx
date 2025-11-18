@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { analyzeStudentPerformance } from '../services/geminiService';
 import { Student, Grade, AIAnalysisResult, Anecdote } from '../types';
-import { SparklesIcon } from './icons';
+import { RefreshCwIcon, SparklesIcon } from './icons';
 import { toast } from 'react-hot-toast';
 
 interface AIPerformanceAnalysisProps {
@@ -75,9 +75,9 @@ const AIPerformanceAnalysis: React.FC<AIPerformanceAnalysisProps> = ({ students,
   if (isLoading) {
     return (
       <div className="text-center p-8 bg-base-200 rounded-lg">
-        <SparklesIcon className="w-12 h-12 text-primary mx-auto animate-pulse" />
-        <p className="mt-4 text-lg">Analyzing performance data...</p>
-        <p className="text-sm text-base-content">The AI is identifying trends across all quarters and generating recommendations. This may take a moment.</p>
+        <RefreshCwIcon className="w-12 h-12 text-primary mx-auto animate-spin" />
+        <p className="mt-4 text-lg font-bold">HUBert's AI is Analyzing...</p>
+        <p className="text-sm text-base-content mt-1">Identifying trends and generating recommendations. This may take a moment.</p>
       </div>
     );
   }
