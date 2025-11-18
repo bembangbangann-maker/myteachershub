@@ -389,12 +389,18 @@ export interface LasActivity {
     rubric?: DlpRubricItem[];
 }
 
-export interface LearningActivitySheet {
+export interface LearningActivitySheetDay {
+    dayTitle: string;
     activityTitle: string;
     learningTarget: string;
     references: string;
     conceptNotes: LasConceptNotes[];
     activities: LasActivity[];
+    reflection: string;
+}
+
+export interface LearningActivitySheet {
+    days: LearningActivitySheetDay[];
 }
 // FIX: Add missing type definitions for COT Lesson Plan feature.
 export interface CotProcedureStep {

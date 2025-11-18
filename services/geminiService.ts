@@ -530,21 +530,52 @@ export const generateDllContent = async (options: { subject: string; gradeLevel:
 
 const lasQuestionSchema = { type: Type.OBJECT, properties: { questionText: { type: Type.STRING }, type: { type: Type.STRING, enum: ['Identification', 'Essay', 'Problem-solving', 'Multiple Choice'] }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, answer: { type: Type.STRING } }, required: ["questionText", "type"] };
 const lasActivitySchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, instructions: { type: Type.STRING }, questions: { type: Type.ARRAY, items: lasQuestionSchema }, rubric: { type: Type.ARRAY, items: dlpRubricItemSchema } }, required: ["title", "instructions"] };
-const lasContentSchema = { type: Type.OBJECT, properties: { activityTitle: { type: Type.STRING }, learningTarget: { type: Type.STRING }, references: { type: Type.STRING }, conceptNotes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, content: { type: Type.STRING } }, required: ["title", "content"] } }, activities: { type: Type.ARRAY, items: lasActivitySchema } }, required: ["activityTitle", "learningTarget", "references", "conceptNotes", "activities"] };
+const lasDaySchema = {
+    type: Type.OBJECT,
+    properties: {
+        dayTitle: { type: Type.STRING, description: "Title for the day, e.g., 'Day 1: Understanding Bias'" },
+        activityTitle: { type: Type.STRING, description: "The specific title for the activity sheet for this day." },
+        learningTarget: { type: Type.STRING },
+        references: { type: Type.STRING },
+        conceptNotes: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { title: { type: Type.STRING }, content: { type: Type.STRING } }, required: ["title", "content"] } },
+        activities: { type: Type.ARRAY, items: lasActivitySchema },
+        reflection: { type: Type.STRING, description: "A single reflection question for the end of the day's activity." }
+    },
+    required: ["dayTitle", "activityTitle", "learningTarget", "references", "conceptNotes", "activities", "reflection"]
+};
+const lasContentSchema = {
+    type: Type.OBJECT,
+    properties: {
+        days: {
+            type: Type.ARRAY,
+            items: lasDaySchema,
+            description: "An array containing content for exactly 5 days."
+        }
+    },
+    required: ["days"]
+};
+
 export const generateLearningActivitySheet = async (options: { subject: string; gradeLevel: string; learningCompetency: string; lessonObjective: string; activityType: string; language: 'English' | 'Filipino' }): Promise<LearningActivitySheet> => {
     const { subject, gradeLevel, learningCompetency, lessonObjective, activityType, language } = options;
     const model = "gemini-2.5-pro";
     const prompt = `
-        Create a DLP-style Learning Activity Sheet (LAS) in ${language} for a Grade ${gradeLevel} ${subject} class.
-        - Learning Competency: ${learningCompetency}
-        - Lesson Objective: ${lessonObjective}
-        - Activity Focus: ${activityType}
+        Create a comprehensive, 5-day learning packet for a DLP-style Learning Activity Sheet (LAS) in ${language} for a Grade ${gradeLevel} ${subject} class. The entire week should focus on scaffolding the single provided learning competency.
 
-        Generate all parts: Title, Learning Target, References, Concept Notes, and Activities.
-        - Concept Notes should be clear and concise.
-        - Activities should be engaging and aligned with the objective and focus. Include questions or performance tasks.
-        - For performance tasks, suggest a simple rubric.
-        Return a JSON object adhering to the schema.
+        **Main Learning Competency:** ${learningCompetency}
+        **Main Lesson Objective:** ${lessonObjective}
+        **Activity Focus for the week:** ${activityType}
+
+        **Instructions for Generation:**
+        1.  **Generate content for exactly 5 days.** Each day should build upon the last, leading to mastery of the main competency. Day 5 should ideally be a performance task or culminating activity.
+        2.  For each of the 5 days, provide all the necessary fields:
+            - **dayTitle:** A clear title, e.g., "Day 1: Introduction to [Topic]".
+            - **activityTitle:** The specific title for that day's activity sheet.
+            - **learningTarget:** The specific sub-objective for that day.
+            - **references:** Suggest relevant learning materials.
+            - **conceptNotes:** Clear, concise notes explaining the concept for the day. Use markdown for emphasis.
+            - **activities:** Create one or more engaging activities for the day. Include clear instructions and questions.
+            - **reflection:** A single, thought-provoking reflection question related to the day's lesson.
+        3.  Structure the output as a single JSON object containing a 'days' array. Each element in the array is an object representing one day's content. Adhere strictly to the provided JSON schema.
     `;
     try {
         const response = await callApiProxy({

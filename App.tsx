@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider } from './contexts/AppContext';
 import Modal from './components/Modal';
@@ -27,12 +27,8 @@ import MySeminars from './components/MySeminars';
 const App: React.FC = () => {
     const [isWelcomeModalOpen, setIsWelcomeModalOpen] = useState(false);
     const [isMobileWarningOpen, setIsMobileWarningOpen] = useState(false);
-    const welcomeAudioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-        // Preload audio
-        welcomeAudioRef.current = new Audio('https://storage.googleapis.com/welcome-john/voiceact.mp3');
-        
         const hasBeenWelcomed = localStorage.getItem('teachers_hub_welcomed');
         if (!hasBeenWelcomed) {
             setIsWelcomeModalOpen(true);
@@ -46,12 +42,6 @@ const App: React.FC = () => {
     }, []);
 
     const handleGetStarted = () => {
-      if (welcomeAudioRef.current) {
-        welcomeAudioRef.current.play().catch(error => {
-            console.warn("Audio playback failed:", error);
-            // Proceed even if audio fails
-        });
-      }
       localStorage.setItem('teachers_hub_welcomed', 'true');
       setIsWelcomeModalOpen(false);
     };

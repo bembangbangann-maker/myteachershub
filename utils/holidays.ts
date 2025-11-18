@@ -23,7 +23,7 @@ export const holidays: Holiday[] = [
     { month: 3, day: 9, name: "Araw ng Kagitingan", message: "Today we honor bravery. Thank you for your daily heroism in the classroom, fighting for the future of your students." },
     { month: 4, day: 1, name: "Labor Day", message: "Happy Labor Day! Your hard work and dedication as an educator are immensely valued. Enjoy a well-deserved day of rest." },
     { month: 5, day: 12, name: "Independence Day", message: "Happy Independence Day! Let's celebrate the freedom to learn and the power of education to build a stronger nation." },
-    // Fix: Added missing 'month' property to satisfy the Holiday interface.
+    // FIX: Add the missing 'month' property.
     { month: 7, name: "National Heroes Day", calculateDate: getLastMondayOfAugust, message: "Salute to the heroes of the past and the heroes of today—like you! Thank you for your tireless dedication to your students." },
     { month: 9, day: 5, name: "World Teachers' Day", message: "Happy World Teachers' Day! Your dedication shapes the future. Take a moment to celebrate the incredible impact you make every single day." },
     { month: 10, day: 1, name: "All Saints' Day", message: "A day for remembrance and reflection. Wishing you a peaceful and solemn break." },

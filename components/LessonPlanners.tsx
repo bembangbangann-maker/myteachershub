@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 import { generateDlpContent, generateQuizContent, generateRubricForActivity, generateDllContent, generateLearningActivitySheet, generateExam } from '../services/geminiService';
-import { DlpContent, GeneratedQuiz, QuizType, DlpRubricItem, GeneratedQuizSection, DllContent, DlpProcedure, LearningActivitySheet, SchoolSettings, ExamObjective, GeneratedExam } from '../types';
+import { DlpContent, GeneratedQuiz, QuizType, DlpRubricItem, GeneratedQuizSection, DllContent, DlpProcedure, LearningActivitySheet, SchoolSettings, ExamObjective, GeneratedExam, LearningActivitySheetDay } from '../types';
 import Header from './Header';
 import { SparklesIcon, DownloadIcon, ClipboardCheckIcon, PlusIcon, TrashIcon, RefreshCwIcon } from './icons';
 import { docxService } from '../services/docxService';
@@ -1043,67 +1043,76 @@ const DllPreview = ({ dllContent, dllHeaders, dllDays, handleDownloadDllDocx, is
     </>
 );
 
-const LasPreview = ({ lasContent, settings, lasForm, onDownload }: any) => (
+const LasPreview = ({ lasContent, settings, lasForm, onDownload }: { lasContent: LearningActivitySheet, settings: SchoolSettings, lasForm: any, onDownload: () => void }) => (
     <>
         <div className="p-4 border-b border-base-300 flex justify-between items-center flex-shrink-0">
-            <h3 className="text-xl font-bold">{lasContent.activityTitle}</h3>
-            <button onClick={onDownload} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg"><DownloadIcon className="w-5 h-5 mr-2"/>Download Word File</button>
+            <h3 className="text-xl font-bold">5-Day Learning Activity Sheet Preview</h3>
+            <button onClick={onDownload} className="flex items-center bg-secondary hover:bg-secondary-focus text-white font-bold py-2 px-4 rounded-lg">
+                <DownloadIcon className="w-5 h-5 mr-2"/>Download Word File
+            </button>
         </div>
-        <div className="p-4 md:p-6 overflow-y-auto flex-grow min-h-0 bg-base-100">
-            <div className="bg-white text-black p-4 font-serif border-2 border-black max-w-4xl mx-auto">
-                <header className="flex justify-between items-start mb-2 border-b-2 border-black pb-2">
-                    <div className="flex items-center gap-2">
-                        {settings.schoolLogo && <img src={settings.schoolLogo} alt="School Logo" className="h-16 w-16 object-contain" />}
-                        {settings.secondLogo && <img src={settings.secondLogo} alt="Second Logo" className="h-16 w-16 object-contain" />}
+        <div className="p-4 md:p-6 overflow-y-auto flex-grow min-h-0 bg-base-100 space-y-8">
+            {lasContent.days.map((dayData, index) => (
+                <div key={index} className="bg-white text-black p-4 font-serif border-2 border-black max-w-4xl mx-auto shadow-lg">
+                    <header className="flex justify-between items-start mb-2 border-b-2 border-black pb-2">
+                        <div className="flex items-center gap-2">
+                            {settings.schoolLogo && <img src={settings.schoolLogo} alt="School Logo" className="h-16 w-16 object-contain" />}
+                            {settings.secondLogo && <img src={settings.secondLogo} alt="Second Logo" className="h-16 w-16 object-contain" />}
+                        </div>
+                        <div className="text-center">
+                            <p className="font-bold text-lg">Dynamic Learning Program</p>
+                            <p className="font-bold text-base">LEARNING ACTIVITY SHEET</p>
+                        </div>
+                        <div className="text-sm">
+                            <div className="border-2 border-black p-1">S.Y. {settings.schoolYear}</div>
+                        </div>
+                    </header>
+                    <table className="w-full border-collapse border-2 border-black text-sm mb-2">
+                        <tbody>
+                            <tr>
+                                <td className="border border-black p-1 w-2/3"><strong>Name:</strong></td>
+                                <td className="border border-black p-1 w-1/3"><strong>Score:</strong></td>
+                            </tr>
+                            <tr>
+                                <td className="border border-black p-1"><strong>Grade & Section:</strong></td>
+                                <td className="border border-black p-1"><strong>Date:</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div className="border-2 border-black">
+                        <p className="bg-black text-white font-bold p-1">Day: <span className="font-normal">{dayData.dayTitle}</span></p>
+                        <p className="bg-black text-white font-bold p-1">Activity Title: <span className="font-normal">{dayData.activityTitle}</span></p>
+                        <p className="bg-black text-white font-bold p-1">Learning Target: <span className="font-normal">{dayData.learningTarget}</span></p>
+                        <div className="p-2">
+                            <p className="font-bold">References: <span className="italic text-xs">(Author, Title, Pages)</span></p>
+                            <p className="pl-4">{dayData.references}</p>
+                        </div>
                     </div>
-                    <div className="text-center">
-                        <p className="font-bold text-lg">Dynamic Learning Program</p>
-                        <p className="font-bold text-base">LEARNING ACTIVITY SHEET</p>
+                    <div className="mt-4 space-y-4">
+                        {dayData.conceptNotes.map((note: any, noteIndex: number) => (
+                            <div key={`note-${noteIndex}`}>
+                                <h4 className="font-bold underline">{note.title}</h4>
+                                <p className="whitespace-pre-wrap">{note.content}</p>
+                            </div>
+                        ))}
+                        {dayData.activities.map((activity: any, activityIndex: number) => (
+                            <div key={`activity-${activityIndex}`}>
+                                <h4 className="font-bold text-lg underline">{activity.title}</h4>
+                                <p className="italic mb-2">{activity.instructions}</p>
+                                {activity.questions && (
+                                    <ol className="list-decimal list-inside space-y-2">
+                                        {activity.questions.map((q: any, qIndex: number) => <li key={qIndex}>{q.questionText}</li>)}
+                                    </ol>
+                                )}
+                            </div>
+                        ))}
                     </div>
-                    <div className="text-sm">
-                        <div className="border-2 border-black p-1">S.Y. {settings.schoolYear}</div>
-                    </div>
-                </header>
-                <table className="w-full border-collapse border-2 border-black text-sm mb-2">
-                    <tbody>
-                        <tr>
-                            <td className="border border-black p-1 w-2/3"><strong>Name:</strong></td>
-                            <td className="border border-black p-1 w-1/3"><strong>Score:</strong></td>
-                        </tr>
-                         <tr>
-                            <td className="border border-black p-1"><strong>Grade & Section:</strong></td>
-                            <td className="border border-black p-1"><strong>Date:</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div className="border-2 border-black">
-                    <p className="bg-black text-white font-bold p-1">Activity Title: <span className="font-normal">{lasContent.activityTitle}</span></p>
-                    <p className="bg-black text-white font-bold p-1">Learning Target: <span className="font-normal">{lasContent.learningTarget}</span></p>
-                    <div className="p-2">
-                        <p className="font-bold">References: <span className="italic text-xs">(Author, Title, Pages)</span></p>
-                        <p className="pl-4">{lasContent.references}</p>
+                     <div className="mt-4 border-t-2 border-black pt-2">
+                        <h4 className="font-bold underline">Reflection</h4>
+                        <p className="mt-1">{dayData.reflection}</p>
                     </div>
                 </div>
-                 <div className="mt-4 space-y-4">
-                    {lasContent.conceptNotes.map((note: any, index: number) => (
-                        <div key={`note-${index}`}>
-                            <h4 className="font-bold underline">{note.title}</h4>
-                            <p className="whitespace-pre-wrap">{note.content}</p>
-                        </div>
-                    ))}
-                     {lasContent.activities.map((activity: any, index: number) => (
-                        <div key={`activity-${index}`}>
-                            <h4 className="font-bold text-lg underline">{activity.title}</h4>
-                            <p className="italic mb-2">{activity.instructions}</p>
-                            {activity.questions && (
-                                <ol className="list-decimal list-inside space-y-2">
-                                    {activity.questions.map((q: any, qIndex: number) => <li key={qIndex}>{q.questionText}</li>)}
-                                </ol>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
+            ))}
         </div>
     </>
 );
