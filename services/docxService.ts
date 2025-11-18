@@ -1122,12 +1122,12 @@ class DocxService {
             sections: [{
                 properties: {
                     page: {
-                        size: { 
+                        size: {
                             orientation: PageOrientation.LANDSCAPE,
-                            // Set portrait dimensions and let orientation swap them, as a robust fix.
-                            // 8.5 inches = 12240 DXA, 13 inches = 18720 DXA
-                            width: 18720, 
-                            height: 12240,
+                            // Note: docx library requires portrait dimensions, which are then rotated.
+                            // For 8.5" x 13" landscape, we provide width 8.5" and height 13".
+                            width: 12240,  // 8.5 inches in DXA
+                            height: 18720, // 13 inches in DXA
                         },
                         margin: { top: 720, right: 720, bottom: 720, left: 720 } // 0.5 inch margins
                     }
