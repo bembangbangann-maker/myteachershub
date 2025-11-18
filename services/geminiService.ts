@@ -291,7 +291,7 @@ const dlpProcedureSchema = {
     type: Type.OBJECT,
     properties: {
         title: { type: Type.STRING, description: "A creative, descriptive title for the activity (e.g., 'Activity #1: Word Hunt'). Do not use generic titles like 'Teacher's Activity'." },
-        content: { type: Type.STRING, description: "Detailed teacher and student activities. Use markdown for formatting: **bold** for emphasis, *italics* for special notes. Do not use asterisks (*), use bold or italics instead." },
+        content: { type: Type.STRING, description: "Detailed teacher and student activities. Use markdown for formatting, like **bold** and *italics*. CRITICAL: Do NOT use asterisks (*) for lists; write lists as plain text paragraphs." },
         ppst: { type: Type.STRING, description: "Relevant PPST Indicator code, e.g., 1.1.2" }
     },
     required: ["title", "content", "ppst"]
@@ -357,7 +357,8 @@ export const generateDlpContent = async (options: {
         2.  Generate all other sections: Content Standard, Performance Standard, Topic, Learning References, Learning Materials.
         3.  For each procedure step:
             - Use the exact titles as specified in Instruction 1. You may add a creative, descriptive subtitle within the 'content' field if needed.
-            - The 'content' for each procedure should detail both the teacher's actions/instructions and the expected student activities. **IMPORTANT: Describe the activities directly. DO NOT add subheadings like "Teacher's Activity" or "Student's Activity".** Integrate both into a flowing description of the classroom process, which **must include a rich mix of LOTS (Lower-Order Thinking Skills) and HOTS (Higher-Order Thinking Skills) questions** to facilitate discussion. This is a critical requirement. Use markdown for formatting: use **bold letters** for emphasis and *italics* for special notes. Do not use asterisks for lists or any other purpose.
+            - The 'content' for each procedure should detail both the teacher's actions/instructions and the expected student activities. **IMPORTANT: Describe the activities directly. DO NOT add subheadings like "Teacher's Activity" or "Student's Activity".** Integrate both into a flowing description of the classroom process, which **must include a rich mix of LOTS (Lower-Order Thinking Skills) and HOTS (Higher-Order Thinking Skills) questions** to facilitate discussion. This is a critical requirement.
+            - Use markdown for formatting: use **bold** for emphasis and *italics* for special notes. **You are strictly forbidden from using asterisks (*) for lists or any other purpose.** Ensure content is well-spaced and readable.
             - Align each procedure with a relevant PPST indicator based on the teacher's position (${teacherPosition}).
         4.  For the \`evaluationQuestions\` section, you **MUST generate exactly 5 multiple-choice questions**. This is non-negotiable. Each question MUST have 4 options in the \`options\` array and a single correct answer in the \`answer\` field.
         5.  For "remarksContent", provide an empty string "" as this section is for the teacher's handwritten notes after the lesson. Do not generate reflection content.
