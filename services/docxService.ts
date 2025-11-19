@@ -268,19 +268,25 @@ class DocxService {
 
         for (const line of lines) {
             const children: TextRun[] = [];
+            // Regex to split by bold (**) and italic (*) markers
             const parts = line.trim().split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(Boolean);
 
             for (const part of parts) {
-                const fontOptions = { font: "Arial", size: 22 }; // Arial 11pt
+                // Enforce Century Gothic size 14 (28 half-points)
+                const fontOptions = { font: "Century Gothic", size: 28 }; 
+                
                 if (part.startsWith('**') && part.endsWith('**')) {
+                    // Remove asterisks, apply Bold
                     children.push(new TextRun({ text: part.slice(2, -2), bold: true, ...fontOptions }));
                 } else if (part.startsWith('*') && part.endsWith('*')) {
+                    // Remove asterisks, apply Italic
                     children.push(new TextRun({ text: part.slice(1, -1), italics: true, ...fontOptions }));
                 } else {
                     children.push(new TextRun({ text: part, ...fontOptions }));
                 }
             }
             
+            // Check for bullet points
             const isListItem = /^\s*•\s+/.test(line.trim());
             const isSubListItem = /^\s*o\s+/.test(line.trim());
 
@@ -288,7 +294,7 @@ class DocxService {
                 children,
                 bullet: isSubListItem ? { level: 1 } : (isListItem ? { level: 0 } : undefined),
                 indent: isSubListItem ? { left: 1080, hanging: 360 } : (isListItem ? { left: 720, hanging: 360 } : undefined),
-                spacing: { after: 80 }
+                spacing: { after: 120 } // Standard spacing
             }));
         }
 
@@ -739,9 +745,9 @@ class DocxService {
     ): Promise<void> {
         const sections: (Paragraph | Table | PageBreak)[] = [];
         
-        // Use Arial as it's standard and clean.
-        const baseFont = "Arial";
-        const fieldFont = { font: baseFont, size: 22 }; // 11pt
+        // Enforce Century Gothic Font Size 14 (28 half-points)
+        const baseFont = "Century Gothic";
+        const fieldFont = { font: baseFont, size: 28 }; // 14pt = 28 half-points
 
         (lasContent.days || []).forEach((dayData, index) => {
             if (index > 0) {
@@ -752,17 +758,17 @@ class DocxService {
             
             // 1. Day Title (Bold, Heading 1 style)
             sections.push(new Paragraph({
-                text: this.safeString(dayData.dayTitle),
+                text: this.safeString(dayData.dayTitle).toUpperCase(), // CAPS FOR EMPHASIS
                 heading: HeadingLevel.HEADING_1,
-                run: { font: baseFont, size: 28, bold: true },
-                spacing: { after: 120 }
+                run: { font: baseFont, size: 28, bold: true }, // 14pt Bold
+                spacing: { after: 240 }
             }));
 
             // 2. DepEd Header Line
             sections.push(new Paragraph({
                 text: "DepED | Dynamic Learning Program | BAGONG PILIPINAS | LEARNING ACTIVITY SHEET",
                 alignment: AlignmentType.LEFT, 
-                run: { font: baseFont, size: 20, bold: true },
+                run: { font: baseFont, size: 28, bold: true }, // 14pt Bold
                 spacing: { after: 240 },
                 border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
             }));
@@ -832,9 +838,9 @@ class DocxService {
             // 4. Concept Notes
             (dayData.conceptNotes || []).forEach(note => {
                 sections.push(new Paragraph({
-                    text: this.safeString(note.title).toUpperCase(), // Usually "CONCEPT NOTES"
+                    text: this.safeString(note.title).toUpperCase(), // FORCE CAPS
                     heading: HeadingLevel.HEADING_2,
-                    run: { font: baseFont, size: 24, bold: true },
+                    run: { font: baseFont, size: 28, bold: true }, // 14pt Bold
                     spacing: { before: 120, after: 120 }
                 }));
                 sections.push(...this.parseLasMarkdown(this.safeString(note.content)));
@@ -844,9 +850,9 @@ class DocxService {
             (dayData.activities || []).forEach(activity => {
                 // Activity Header
                 sections.push(new Paragraph({
-                    text: this.safeString(activity.title).toUpperCase(), // e.g. ACTIVITY: MATCHING
+                    text: this.safeString(activity.title).toUpperCase(), // FORCE CAPS
                     heading: HeadingLevel.HEADING_3,
-                    run: { font: baseFont, size: 24, bold: true },
+                    run: { font: baseFont, size: 28, bold: true }, // 14pt Bold
                     spacing: { before: 240, after: 120 }
                 }));
 
@@ -888,8 +894,8 @@ class DocxService {
                         tableRows.unshift(new TableRow({
                             tableHeader: true,
                             children: [
-                                new TableCell({ children: [new Paragraph({ text: "Column A", bold: true, alignment: AlignmentType.CENTER, run: fieldFont })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
-                                new TableCell({ children: [new Paragraph({ text: "Column B", bold: true, alignment: AlignmentType.CENTER, run: fieldFont })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
+                                new TableCell({ children: [new Paragraph({ text: "Column A", bold: true, alignment: AlignmentType.CENTER, run: { font: baseFont, size: 28 } })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
+                                new TableCell({ children: [new Paragraph({ text: "Column B", bold: true, alignment: AlignmentType.CENTER, run: { font: baseFont, size: 28 } })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
                             ]
                         }));
                         
@@ -927,7 +933,7 @@ class DocxService {
                              });
                         } else {
                             // Blank line for answer if no options
-                            sections.push(new Paragraph({ text: "______________________________________________________", indentation: { left: 720 } }));
+                            sections.push(new Paragraph({ text: "______________________________________________________", indentation: { left: 720 }, run: fieldFont }));
                         }
                     });
                 }
@@ -937,7 +943,7 @@ class DocxService {
             sections.push(new Paragraph({
                 text: "REFLECTION",
                 heading: HeadingLevel.HEADING_3,
-                run: { font: baseFont, size: 24, bold: true },
+                run: { font: baseFont, size: 28, bold: true }, // 14pt Bold
                 spacing: { before: 240, after: 120 }
             }));
             sections.push(new Paragraph({
@@ -946,11 +952,13 @@ class DocxService {
             }));
              sections.push(new Paragraph({
                 text: "________________________________________________________________________________________________________________________________",
-                spacing: { before: 200 }
+                spacing: { before: 200 },
+                run: fieldFont
             }));
              sections.push(new Paragraph({
                 text: "________________________________________________________________________________________________________________________________",
-                spacing: { before: 200 }
+                spacing: { before: 200 },
+                run: fieldFont
             }));
         });
 
@@ -964,7 +972,7 @@ class DocxService {
                             format: LevelFormat.DECIMAL,
                             text: "%1.",
                             indent: { left: 720, hanging: 360 },
-                            run: { font: "Arial", size: 22 }
+                            run: { font: "Century Gothic", size: 28 } // 14pt
                         }],
                     },
                 ],
