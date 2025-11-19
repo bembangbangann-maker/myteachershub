@@ -1,4 +1,3 @@
-
 {
   "name": "teachers-hub",
   "private": true,
@@ -26,6 +25,7 @@
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "@vercel/node": "^5.1.0",
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
