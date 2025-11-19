@@ -111,6 +111,12 @@ interface GroupsDocxData {
 }
 
 class DocxService {
+    // Helper to ensure text is always a string and never null/undefined to prevent Docx corruption
+    private safeString(value: any): string {
+        if (value === null || value === undefined) return '';
+        return String(value);
+    }
+
     private parseDataUrl(dataUrl: string | undefined): { type: "svg" | "jpg" | "png" | "gif" | "bmp"; data: string } | null {
         if (!dataUrl || !dataUrl.startsWith("data:image/")) {
             return null;
@@ -254,17 +260,18 @@ class DocxService {
     }
     
     private parseLasMarkdown(markdownText: string): Paragraph[] {
-        if (!markdownText) return [new Paragraph({ run: { font: "Arial", size: 22 }})];
+        const text = this.safeString(markdownText);
+        if (!text) return [new Paragraph({ children: [], spacing: { after: 0 } })];
 
         const paragraphs: Paragraph[] = [];
-        const lines = markdownText.split('\n').filter(line => line.trim() !== '');
+        const lines = text.split('\n').filter(line => line.trim() !== '');
 
         for (const line of lines) {
             const children: TextRun[] = [];
             const parts = line.trim().split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(Boolean);
 
             for (const part of parts) {
-                const fontOptions = { font: "Arial", size: 22 };
+                const fontOptions = { font: "Arial", size: 22 }; // Arial 11pt
                 if (part.startsWith('**') && part.endsWith('**')) {
                     children.push(new TextRun({ text: part.slice(2, -2), bold: true, ...fontOptions }));
                 } else if (part.startsWith('*') && part.endsWith('*')) {
@@ -310,7 +317,7 @@ class DocxService {
 
         const sections: (Paragraph | Table | PageBreak)[] = [
             new Paragraph({
-                text: quizTitle,
+                text: this.safeString(quizTitle),
                 heading: HeadingLevel.TITLE,
                 alignment: AlignmentType.CENTER,
             }),
@@ -328,9 +335,9 @@ class DocxService {
                 }),
                 ...tableOfSpecifications.map(item => new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph(item.objective)] }),
-                        new TableCell({ children: [new Paragraph(item.cognitiveLevel)] }),
-                        new TableCell({ children: [new Paragraph(item.itemNumbers)] }),
+                        new TableCell({ children: [new Paragraph(this.safeString(item.objective))] }),
+                        new TableCell({ children: [new Paragraph(this.safeString(item.cognitiveLevel))] }),
+                        new TableCell({ children: [new Paragraph(this.safeString(item.itemNumbers))] }),
                     ]
                 }))
             ];
@@ -348,14 +355,14 @@ class DocxService {
         for (const type in questionsByType) {
             const section = questionsByType[type as QuizType];
             if (section) {
-                sections.push(new Paragraph({ text: type, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
-                sections.push(new Paragraph({ text: section.instructions, italics: true, spacing: { after: 200 } }));
-                answerKeySections.push(new Paragraph({ text: type, heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
+                sections.push(new Paragraph({ text: this.safeString(type), heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
+                sections.push(new Paragraph({ text: this.safeString(section.instructions), italics: true, spacing: { after: 200 } }));
+                answerKeySections.push(new Paragraph({ text: this.safeString(type), heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
                 
                 let questionCounter = 1;
                 section.questions.forEach((q, i) => {
                     sections.push(new Paragraph({
-                        text: q.questionText,
+                        text: this.safeString(q.questionText),
                         numbering: {
                             reference: "quiz-numbering",
                             level: 0,
@@ -365,7 +372,7 @@ class DocxService {
                     if (q.options) {
                         q.options.forEach((opt, oi) => {
                             sections.push(new Paragraph({
-                                text: `${String.fromCharCode(65 + oi)}. ${opt}`,
+                                text: `${String.fromCharCode(65 + oi)}. ${this.safeString(opt)}`,
                                 indentation: { left: 1080 },
                             }));
                         });
@@ -374,7 +381,7 @@ class DocxService {
                     }
 
                     answerKeySections.push(new Paragraph({
-                        text: `${questionCounter}. ${q.correctAnswer}`,
+                        text: `${questionCounter}. ${this.safeString(q.correctAnswer)}`,
                         numbering: {
                             reference: "quiz-numbering",
                             level: 0,
@@ -388,13 +395,13 @@ class DocxService {
         if (activities && activities.length > 0) {
             sections.push(new Paragraph({ text: "Activities", heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
             activities.forEach(activity => {
-                sections.push(new Paragraph({ text: activity.activityName, heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
-                sections.push(new Paragraph({ text: activity.activityInstructions, italics: true, spacing: { after: 200 } }));
+                sections.push(new Paragraph({ text: this.safeString(activity.activityName), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+                sections.push(new Paragraph({ text: this.safeString(activity.activityInstructions), italics: true, spacing: { after: 200 } }));
                 if (activity.rubric && activity.rubric.length > 0) {
                     const rubricRows = activity.rubric.map(item => new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph(item.criteria)] }),
-                            new TableCell({ children: [new Paragraph(String(item.points))] }),
+                            new TableCell({ children: [new Paragraph(this.safeString(item.criteria))] }),
+                            new TableCell({ children: [new Paragraph(this.safeString(item.points))] }),
                         ]
                     }));
                     const rubricTable = new Table({
@@ -427,7 +434,7 @@ class DocxService {
         });
 
         const blob = await Packer.toBlob(doc);
-        this.downloadBlob(blob, `${quizTitle.replace(/\s/g, '_')}_Quiz.docx`);
+        this.downloadBlob(blob, `${this.safeString(quizTitle).replace(/\s/g, '_')}_Quiz.docx`);
     }
     
     public async generateDlpDocx(
@@ -456,7 +463,7 @@ class DocxService {
             '9': 'F08080', // LightCoral
             '10': 'ADD8E6', // LightBlue
         };
-        const gradeColor = gradeColorMapping[dlpForm.gradeLevel] || 'D9D9D9';
+        const gradeColor = gradeColorMapping[this.safeString(dlpForm.gradeLevel)] || 'D9D9D9';
     
         const textRunOptions: IRunOptions = { font: "Times New Roman", size: 22 };
         const boldTextRunOptions: IRunOptions = { ...textRunOptions, bold: true };
@@ -513,20 +520,20 @@ class DocxService {
                                     new TableCell({
                                         children: [
                                             new Paragraph({ text: isFilipino ? 'Paaralan' : 'School', style: 'header-label' }),
-                                            new Paragraph({ text: dlpForm.schoolName.toUpperCase(), style: 'header-value' }),
-                                            new Paragraph({ text: dlpForm.quarterSelect, style: 'header-value' }),
-                                            new Paragraph({ text: `${isFilipino ? 'Guro' : 'Teacher'}: ${dlpForm.teacher}`, style: 'header-value' }),
-                                            new Paragraph({ text: `${isFilipino ? 'Asignatura' : 'Learning Area'}: ${dlpForm.subject.toUpperCase()}`, style: 'header-value' }),
-                                            new Paragraph({ text: `${isFilipino ? 'Petsa ng Pagtuturo' : 'Teaching Dates'}: ${dlpForm.teachingDates}`, style: 'header-value' }),
+                                            new Paragraph({ text: this.safeString(dlpForm.schoolName).toUpperCase(), style: 'header-value' }),
+                                            new Paragraph({ text: this.safeString(dlpForm.quarterSelect), style: 'header-value' }),
+                                            new Paragraph({ text: `${isFilipino ? 'Guro' : 'Teacher'}: ${this.safeString(dlpForm.teacher)}`, style: 'header-value' }),
+                                            new Paragraph({ text: `${isFilipino ? 'Asignatura' : 'Learning Area'}: ${this.safeString(dlpForm.subject).toUpperCase()}`, style: 'header-value' }),
+                                            new Paragraph({ text: `${isFilipino ? 'Petsa ng Pagtuturo' : 'Teaching Dates'}: ${this.safeString(dlpForm.teachingDates)}`, style: 'header-value' }),
                                         ].map(p => new Paragraph({ ...p.options, alignment: AlignmentType.LEFT })),
                                         width: { size: 55, type: WidthType.PERCENTAGE }
                                     }),
                                     new TableCell({
                                         children: [
                                             new Paragraph({ text: isFilipino ? 'DETALYADONG BANGHAY-ARALIN SA' : 'DAILY LESSON PLAN IN', alignment: AlignmentType.CENTER, bold: true }),
-                                            new Paragraph({ text: `${dlpForm.subject.toUpperCase()} ${dlpForm.gradeLevel}`, alignment: AlignmentType.CENTER, bold: true }),
+                                            new Paragraph({ text: `${this.safeString(dlpForm.subject).toUpperCase()} ${this.safeString(dlpForm.gradeLevel)}`, alignment: AlignmentType.CENTER, bold: true }),
                                             new Paragraph({ text: (isFilipino ? 'ISKEDYUL NG KLASE' : 'CLASS SCHEDULE'), alignment: AlignmentType.CENTER, bold: true, spacing: {before: 100} }),
-                                            ...dlpForm.classSchedule.split('\n').map((line: string) => new Paragraph({ text: line, alignment: AlignmentType.CENTER }))
+                                            ...this.safeString(dlpForm.classSchedule).split('\n').map((line: string) => new Paragraph({ text: line, alignment: AlignmentType.CENTER }))
                                         ],
                                         width: { size: 30, type: WidthType.PERCENTAGE },
                                         verticalAlign: VerticalAlign.CENTER
@@ -541,9 +548,9 @@ class DocxService {
                     new Table({
                         width: { size: 100, type: WidthType.PERCENTAGE },
                         rows: [
-                            new TableRow({ children: [createHeaderCell(t.objectives), createContentCell([ new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Pamantayang Pangnilalaman: ' : 'Content Standard: ') }), new TextRun({ ...textRunOptions, text: dlpContent.contentStandard })] }), new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Pamantayan sa Pagganap: ' : 'Performance Standard: ') }), new TextRun({ ...textRunOptions, text: dlpContent.performanceStandard })] }), new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Kasanayan sa Pagkatuto: ' : 'Learning Competency: ') }), new TextRun({ ...textRunOptions, text: dlpForm.learningCompetency })] }), new Paragraph({ text: (isFilipino ? 'Sa pagtatapos ng aralin, ang mga mag-aaral ay inaasahang:' : 'At the end of the lesson, the learners should be able to:'), spacing: { before: 200 } }), new Paragraph({ text: dlpForm.lessonObjective, bullet: { level: 0 } })])] }),
-                            new TableRow({ children: [createHeaderCell(t.content), createContentCell([ new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Paksa: ' : 'Topic: ') }), new TextRun({ ...textRunOptions, text: dlpContent.topic })] })])] }),
-                            new TableRow({ children: [createHeaderCell(t.resources), createContentCell([ new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Sanggunian: ' : 'References: ') }), new TextRun({ ...textRunOptions, text: dlpContent.learningReferences })] }), new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Kagamitan: ' : 'Materials: ') }), new TextRun({ ...textRunOptions, text: dlpContent.learningMaterials })] })])] }),
+                            new TableRow({ children: [createHeaderCell(t.objectives), createContentCell([ new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Pamantayang Pangnilalaman: ' : 'Content Standard: ') }), new TextRun({ ...textRunOptions, text: this.safeString(dlpContent.contentStandard) })] }), new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Pamantayan sa Pagganap: ' : 'Performance Standard: ') }), new TextRun({ ...textRunOptions, text: this.safeString(dlpContent.performanceStandard) })] }), new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Kasanayan sa Pagkatuto: ' : 'Learning Competency: ') }), new TextRun({ ...textRunOptions, text: this.safeString(dlpForm.learningCompetency) })] }), new Paragraph({ text: (isFilipino ? 'Sa pagtatapos ng aralin, ang mga mag-aaral ay inaasahang:' : 'At the end of the lesson, the learners should be able to:'), spacing: { before: 200 } }), new Paragraph({ text: this.safeString(dlpForm.lessonObjective), bullet: { level: 0 } })])] }),
+                            new TableRow({ children: [createHeaderCell(t.content), createContentCell([ new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Paksa: ' : 'Topic: ') }), new TextRun({ ...textRunOptions, text: this.safeString(dlpContent.topic) })] })])] }),
+                            new TableRow({ children: [createHeaderCell(t.resources), createContentCell([ new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Sanggunian: ' : 'References: ') }), new TextRun({ ...textRunOptions, text: this.safeString(dlpContent.learningReferences) })] }), new Paragraph({ children: [new TextRun({ ...boldTextRunOptions, text: (isFilipino ? 'Kagamitan: ' : 'Materials: ') }), new TextRun({ ...textRunOptions, text: this.safeString(dlpContent.learningMaterials) })] })])] }),
                             new TableRow({ children: [createHeaderCell(t.procedure), new TableCell({
                                 children: [ new Table({
                                     width: { size: 100, type: WidthType.PERCENTAGE },
@@ -551,13 +558,13 @@ class DocxService {
                                     rows: [
                                         new TableRow({ children: [ new TableCell({ children: [new Paragraph({ text: (isFilipino ? 'Pamamaraan' : 'Procedure'), bold: true })] }), new TableCell({ children: [new Paragraph({ text: (isFilipino ? 'Gawain ng Guro/Mag-aaral' : 'Teacher/Student Activity'), bold: true })] }), new TableCell({ children: [new Paragraph({ text: (isFilipino ? 'Mga Kaugnay na PPST Indicator' : 'Aligned PPST Indicators'), bold: true })] })] }),
                                         ...dlpContent.procedures.map(proc => new TableRow({
-                                            children: [ new TableCell({ children: [new Paragraph({ text: proc.title, bold: true })] }), new TableCell({ children: this.parseMarkdownToParagraphs(proc.content) }), new TableCell({ children: [new Paragraph({ text: proc.ppst, italics: true })] })],
+                                            children: [ new TableCell({ children: [new Paragraph({ text: this.safeString(proc.title), bold: true })] }), new TableCell({ children: this.parseMarkdownToParagraphs(this.safeString(proc.content)) }), new TableCell({ children: [new Paragraph({ text: this.safeString(proc.ppst), italics: true })] })],
                                         }))
                                     ],
                                 })],
                             })] }),
-                            new TableRow({ children: [createHeaderCell(t.evaluation), createContentCell( (dlpContent.evaluationQuestions || []).map(q => new Paragraph({ text: q.question, numbering: { reference: "dlp-list", level: 0 }, spacing: { after: 100 } })))] }),
-                            new TableRow({ children: [createHeaderCell(t.reflection), createContentCell([new Paragraph({text: ""})])] }), // Empty for now, as per user's last request.
+                            new TableRow({ children: [createHeaderCell(t.evaluation), createContentCell( (dlpContent.evaluationQuestions || []).map(q => new Paragraph({ text: this.safeString(q.question), numbering: { reference: "dlp-list", level: 0 }, spacing: { after: 100 } })))] }),
+                            new TableRow({ children: [createHeaderCell(t.reflection), createContentCell([new Paragraph({text: ""})])] }), // Empty for now
                         ],
                     }),
     
@@ -565,13 +572,13 @@ class DocxService {
     
                     // Answer Key
                     new Paragraph({ text: (isFilipino ? 'Susi sa Pagwawasto' : 'Answer Key (For Evaluating Learning)'), heading: HeadingLevel.HEADING_2 }),
-                    ...(dlpContent.evaluationQuestions || []).map(q => new Paragraph({ text: q.answer, numbering: { reference: "dlp-list", level: 0 }, spacing: { after: 100 } })),
+                    ...(dlpContent.evaluationQuestions || []).map(q => new Paragraph({ text: this.safeString(q.answer), numbering: { reference: "dlp-list", level: 0 }, spacing: { after: 100 } })),
                 ],
             }]
         });
     
         const blob = await Packer.toBlob(doc);
-        this.downloadBlob(blob, `DLP_${dlpForm.subject.replace(/\s/g, '_')}.docx`);
+        this.downloadBlob(blob, `DLP_${this.safeString(dlpForm.subject).replace(/\s/g, '_')}.docx`);
     }
     
     public async generateDllDocx(
@@ -581,7 +588,6 @@ class DocxService {
     ): Promise<void> {
 
         // Corrected page size for 8.5" x 13" (Long Bond Paper) in landscape
-        // The library expects portrait dimensions first, then applies orientation.
         // Width: 8.5 inches * 1440 DXA/inch = 12240 DXA
         // Height: 13 inches * 1440 DXA/inch = 18720 DXA
         const pageHeight = 18720;
@@ -597,16 +603,16 @@ class DocxService {
             rows: [
                 new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ text: `School: ${settings.schoolName}`, alignment: AlignmentType.LEFT })] }),
-                        new TableCell({ children: [new Paragraph({ text: `Grade Level: ${dllForm.gradeLevel}`, alignment: AlignmentType.LEFT })] }),
-                        new TableCell({ children: [new Paragraph({ text: `Teacher: ${settings.teacherName}`, alignment: AlignmentType.LEFT })] }),
-                        new TableCell({ children: [new Paragraph({ text: `Learning Area: ${dllForm.subject}`, alignment: AlignmentType.LEFT })] }),
+                        new TableCell({ children: [new Paragraph({ text: `School: ${this.safeString(settings.schoolName)}`, alignment: AlignmentType.LEFT })] }),
+                        new TableCell({ children: [new Paragraph({ text: `Grade Level: ${this.safeString(dllForm.gradeLevel)}`, alignment: AlignmentType.LEFT })] }),
+                        new TableCell({ children: [new Paragraph({ text: `Teacher: ${this.safeString(settings.teacherName)}`, alignment: AlignmentType.LEFT })] }),
+                        new TableCell({ children: [new Paragraph({ text: `Learning Area: ${this.safeString(dllForm.subject)}`, alignment: AlignmentType.LEFT })] }),
                     ]
                 }),
                 new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ text: `Teaching Dates & Time: ${dllForm.teachingDates}`, alignment: AlignmentType.LEFT })] }),
-                        new TableCell({ children: [new Paragraph({ text: `Quarter: ${dllForm.quarter}`, alignment: AlignmentType.LEFT })] }),
+                        new TableCell({ children: [new Paragraph({ text: `Teaching Dates & Time: ${this.safeString(dllForm.teachingDates)}`, alignment: AlignmentType.LEFT })] }),
+                        new TableCell({ children: [new Paragraph({ text: `Quarter: ${this.safeString(dllForm.quarter)}`, alignment: AlignmentType.LEFT })] }),
                         new TableCell({ children: [], columnSpan: 2 }),
                     ]
                 })
@@ -623,45 +629,43 @@ class DocxService {
 
         // Add Objectives
         mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "I. OBJECTIVES", bold: true })], columnSpan: 6 })]}));
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph("A. Content Standard")] }), new TableCell({ children: [new Paragraph(dllContent.contentStandard)], columnSpan: 5 })]}));
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph("B. Performance Standard")] }), new TableCell({ children: [new Paragraph(dllContent.performanceStandard)], columnSpan: 5 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph("A. Content Standard")] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.contentStandard))], columnSpan: 5 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph("B. Performance Standard")] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.performanceStandard))], columnSpan: 5 })]}));
         mainTableRows.push(new TableRow({
             children: [
                 new TableCell({ children: [new Paragraph("C. Learning Competencies")] }),
-                new TableCell({ children: [new Paragraph(dllContent.learningCompetencies.monday)] }),
-                new TableCell({ children: [new Paragraph(dllContent.learningCompetencies.tuesday)] }),
-                new TableCell({ children: [new Paragraph(dllContent.learningCompetencies.wednesday)] }),
-                new TableCell({ children: [new Paragraph(dllContent.learningCompetencies.thursday)] }),
-                new TableCell({ children: [new Paragraph(dllContent.learningCompetencies.friday)] }),
+                new TableCell({ children: [new Paragraph(this.safeString(dllContent.learningCompetencies.monday))] }),
+                new TableCell({ children: [new Paragraph(this.safeString(dllContent.learningCompetencies.tuesday))] }),
+                new TableCell({ children: [new Paragraph(this.safeString(dllContent.learningCompetencies.wednesday))] }),
+                new TableCell({ children: [new Paragraph(this.safeString(dllContent.learningCompetencies.thursday))] }),
+                new TableCell({ children: [new Paragraph(this.safeString(dllContent.learningCompetencies.friday))] }),
             ]
         }));
         
         // Add Content
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "II. CONTENT", bold: true })] }), new TableCell({ children: [new Paragraph(dllContent.content)], columnSpan: 5 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "II. CONTENT", bold: true })] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.content))], columnSpan: 5 })]}));
 
         // Add Learning Resources
         mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "III. LEARNING RESOURCES", bold: true })], columnSpan: 6 })]}));
-        // ... (similar rows for each resource type)
 
         // Add Procedures
         mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "IV. PROCEDURES", bold: true })], columnSpan: 6 })]}));
         dllContent.procedures.forEach(proc => {
             mainTableRows.push(new TableRow({
                 children: [
-                    new TableCell({ children: [new Paragraph(proc.procedure)] }),
-                    new TableCell({ children: this.parseMarkdownToParagraphs(proc.monday) }),
-                    new TableCell({ children: this.parseMarkdownToParagraphs(proc.tuesday) }),
-                    new TableCell({ children: this.parseMarkdownToParagraphs(proc.wednesday) }),
-                    new TableCell({ children: this.parseMarkdownToParagraphs(proc.thursday) }),
-                    new TableCell({ children: this.parseMarkdownToParagraphs(proc.friday) }),
+                    new TableCell({ children: [new Paragraph(this.safeString(proc.procedure))] }),
+                    new TableCell({ children: this.parseMarkdownToParagraphs(this.safeString(proc.monday)) }),
+                    new TableCell({ children: this.parseMarkdownToParagraphs(this.safeString(proc.tuesday)) }),
+                    new TableCell({ children: this.parseMarkdownToParagraphs(this.safeString(proc.wednesday)) }),
+                    new TableCell({ children: this.parseMarkdownToParagraphs(this.safeString(proc.thursday)) }),
+                    new TableCell({ children: this.parseMarkdownToParagraphs(this.safeString(proc.friday)) }),
                 ]
             }));
         });
         
         // Add Remarks & Reflection
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "V. REMARKS", bold: true })] }), new TableCell({ children: [new Paragraph(dllContent.remarks)], columnSpan: 5 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "V. REMARKS", bold: true })] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.remarks))], columnSpan: 5 })]}));
         mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "VI. REFLECTION", bold: true })], columnSpan: 6 })]}));
-        // ... (rows for reflection)
 
         const mainTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
@@ -689,16 +693,16 @@ class DocxService {
                  }),
                  new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ text: dllForm.preparedByName, ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
-                        new TableCell({ children: [new Paragraph({ text: dllForm.checkedByName, ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
-                        new TableCell({ children: [new Paragraph({ text: dllForm.approvedByName, ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.preparedByName), ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.checkedByName), ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.approvedByName), ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
                     ]
                  }),
                  new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ text: dllForm.preparedByDesignation, alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
-                        new TableCell({ children: [new Paragraph({ text: dllForm.checkedByDesignation, alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
-                        new TableCell({ children: [new Paragraph({ text: dllForm.approvedByDesignation, alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.preparedByDesignation), alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.checkedByDesignation), alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.approvedByDesignation), alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
                     ]
                  })
             ]
@@ -725,7 +729,7 @@ class DocxService {
         });
     
         const blob = await Packer.toBlob(doc);
-        this.downloadBlob(blob, `DLL_${dllForm.subject.replace(/\s/g, '_')}.docx`);
+        this.downloadBlob(blob, `DLL_${this.safeString(dllForm.subject).replace(/\s/g, '_')}.docx`);
     }
 
     public async generateLasDocx(
@@ -734,20 +738,21 @@ class DocxService {
         settings: SchoolSettings
     ): Promise<void> {
         const sections: (Paragraph | Table | PageBreak)[] = [];
-
-        // Helper for safe text to prevent corruption
-        const safeText = (text: string | undefined) => text || '';
+        
         // Use Arial as it's standard and clean.
         const baseFont = "Arial";
+        const fieldFont = { font: baseFont, size: 22 }; // 11pt
 
-        lasContent.days?.forEach((dayData, index) => {
+        (lasContent.days || []).forEach((dayData, index) => {
             if (index > 0) {
                 sections.push(new PageBreak());
             }
 
-            // 1. Day Title (Left Aligned, Bold, Large) - Top of Page
+            // --- Page Header Structure ---
+            
+            // 1. Day Title (Bold, Heading 1 style)
             sections.push(new Paragraph({
-                text: safeText(dayData.dayTitle),
+                text: this.safeString(dayData.dayTitle),
                 heading: HeadingLevel.HEADING_1,
                 run: { font: baseFont, size: 28, bold: true },
                 spacing: { after: 120 }
@@ -762,14 +767,13 @@ class DocxService {
                 border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
             }));
 
-            // 3. Fields
-            const fieldFont = { font: baseFont, size: 22 };
+            // 3. Basic Info Fields
             
             // Subject
             sections.push(new Paragraph({
                 children: [
                     new TextRun({ text: "Subject: ", bold: true, ...fieldFont }),
-                    new TextRun({ text: safeText(lasForm.subject), ...fieldFont })
+                    new TextRun({ text: this.safeString(lasForm.subject), ...fieldFont })
                 ],
                 spacing: { before: 120 }
             }));
@@ -804,7 +808,7 @@ class DocxService {
             sections.push(new Paragraph({
                 children: [
                     new TextRun({ text: "Activity Title: ", bold: true, ...fieldFont }),
-                    new TextRun({ text: safeText(dayData.activityTitle), ...fieldFont })
+                    new TextRun({ text: this.safeString(dayData.activityTitle), ...fieldFont })
                 ]
             }));
 
@@ -812,7 +816,7 @@ class DocxService {
             sections.push(new Paragraph({
                 children: [
                     new TextRun({ text: "Learning Target: ", bold: true, ...fieldFont }),
-                    new TextRun({ text: safeText(dayData.learningTarget), ...fieldFont })
+                    new TextRun({ text: this.safeString(dayData.learningTarget), ...fieldFont })
                 ]
             }));
 
@@ -820,7 +824,7 @@ class DocxService {
             sections.push(new Paragraph({
                 children: [
                     new TextRun({ text: "Reference: ", bold: true, ...fieldFont }),
-                    new TextRun({ text: safeText(dayData.references) || "____________________", ...fieldFont })
+                    new TextRun({ text: this.safeString(dayData.references) || "____________________", ...fieldFont })
                 ],
                 spacing: { after: 240 } 
             }));
@@ -828,25 +832,25 @@ class DocxService {
             // 4. Concept Notes
             (dayData.conceptNotes || []).forEach(note => {
                 sections.push(new Paragraph({
-                    text: safeText(note.title).toUpperCase(), // Usually "CONCEPT NOTES"
+                    text: this.safeString(note.title).toUpperCase(), // Usually "CONCEPT NOTES"
                     heading: HeadingLevel.HEADING_2,
                     run: { font: baseFont, size: 24, bold: true },
                     spacing: { before: 120, after: 120 }
                 }));
-                sections.push(...this.parseLasMarkdown(safeText(note.content)));
+                sections.push(...this.parseLasMarkdown(this.safeString(note.content)));
             });
 
             // 5. Activities
             (dayData.activities || []).forEach(activity => {
                 // Activity Header
                 sections.push(new Paragraph({
-                    text: safeText(activity.title).toUpperCase(), // e.g. ACTIVITY: MATCHING
+                    text: this.safeString(activity.title).toUpperCase(), // e.g. ACTIVITY: MATCHING
                     heading: HeadingLevel.HEADING_3,
                     run: { font: baseFont, size: 24, bold: true },
                     spacing: { before: 240, after: 120 }
                 }));
 
-                const instructions = safeText(activity.instructions);
+                const instructions = this.safeString(activity.instructions);
                 
                 // Check for Table logic (using || separator) to generate "Match the column" tables
                 if (instructions.includes('||')) {
@@ -868,7 +872,10 @@ class DocxService {
                     if (tableLines.length > 0) {
                         // Create Table for matching activities
                          const tableRows = tableLines.map(line => {
-                            const [col1, col2] = line.split('||').map(s => s.trim());
+                            const parts = line.split('||');
+                            const col1 = this.safeString(parts[0]).trim();
+                            const col2 = this.safeString(parts[1]).trim();
+                            
                             return new TableRow({
                                 children: [
                                     new TableCell({ children: this.parseLasMarkdown(col1), width: { size: 50, type: WidthType.PERCENTAGE }, padding: { top: 100, bottom: 100, left: 100, right: 100 } }),
@@ -885,12 +892,14 @@ class DocxService {
                                 new TableCell({ children: [new Paragraph({ text: "Column B", bold: true, alignment: AlignmentType.CENTER, run: fieldFont })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
                             ]
                         }));
-
-                        sections.push(new Table({
-                            rows: tableRows,
-                            width: { size: 100, type: WidthType.PERCENTAGE },
-                        }));
-                        sections.push(new Paragraph({text: ""})); // Spacer
+                        
+                        if (tableRows.length > 0) {
+                            sections.push(new Table({
+                                rows: tableRows,
+                                width: { size: 100, type: WidthType.PERCENTAGE },
+                            }));
+                            sections.push(new Paragraph({text: ""})); // Spacer
+                        }
                     }
 
                 } else {
@@ -904,14 +913,14 @@ class DocxService {
                          sections.push(new Paragraph({
                             children: [
                                 new TextRun({ text: `${i + 1}. `, bold: true, ...fieldFont }),
-                                new TextRun({ text: safeText(q.questionText), ...fieldFont })
+                                new TextRun({ text: this.safeString(q.questionText), ...fieldFont })
                             ],
                             spacing: { before: 60 }
                         }));
                         if (q.options && q.options.length > 0) {
                              q.options.forEach((opt, oi) => {
                                  sections.push(new Paragraph({
-                                    text: `${String.fromCharCode(65+oi)}. ${opt}`,
+                                    text: `${String.fromCharCode(65+oi)}. ${this.safeString(opt)}`,
                                     indentation: { left: 720 },
                                     run: fieldFont
                                  }));
@@ -932,7 +941,7 @@ class DocxService {
                 spacing: { before: 240, after: 120 }
             }));
             sections.push(new Paragraph({
-                text: safeText(dayData.reflection),
+                text: this.safeString(dayData.reflection),
                 run: fieldFont
             }));
              sections.push(new Paragraph({
@@ -972,7 +981,7 @@ class DocxService {
         });
 
         const blob = await Packer.toBlob(doc);
-        this.downloadBlob(blob, `LAS_${safeText(lasForm.subject).replace(/\s/g, '_')}.docx`);
+        this.downloadBlob(blob, `LAS_${this.safeString(lasForm.subject).replace(/\s/g, '_')}.docx`);
     }
 
     public async generateExamDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
