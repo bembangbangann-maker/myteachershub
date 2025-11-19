@@ -254,7 +254,7 @@ class DocxService {
     }
     
     private parseLasMarkdown(markdownText: string): Paragraph[] {
-        if (!markdownText) return [new Paragraph({ run: { font: "Century Gothic", size: 24 }})];
+        if (!markdownText) return [new Paragraph({ run: { font: "Arial", size: 22 }})];
 
         const paragraphs: Paragraph[] = [];
         const lines = markdownText.split('\n').filter(line => line.trim() !== '');
@@ -264,7 +264,7 @@ class DocxService {
             const parts = line.trim().split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(Boolean);
 
             for (const part of parts) {
-                const fontOptions = { font: "Century Gothic", size: 24 };
+                const fontOptions = { font: "Arial", size: 22 };
                 if (part.startsWith('**') && part.endsWith('**')) {
                     children.push(new TextRun({ text: part.slice(2, -2), bold: true, ...fontOptions }));
                 } else if (part.startsWith('*') && part.endsWith('*')) {
@@ -733,100 +733,220 @@ class DocxService {
         lasContent: LearningActivitySheet,
         settings: SchoolSettings
     ): Promise<void> {
-
         const sections: (Paragraph | Table | PageBreak)[] = [];
-        
+
+        // Helper for safe text to prevent corruption
+        const safeText = (text: string | undefined) => text || '';
+        // Use Arial as it's standard and clean.
+        const baseFont = "Arial";
+
         lasContent.days?.forEach((dayData, index) => {
             if (index > 0) {
                 sections.push(new PageBreak());
             }
 
-            // Day Title
-            sections.push(new Paragraph({ text: dayData.dayTitle, heading: HeadingLevel.HEADING_1, run: { font: "Century Gothic", size: 28, bold: true }, spacing: { before: 200, after: 100 } }));
+            // 1. Day Title (Left Aligned, Bold, Large) - Top of Page
+            sections.push(new Paragraph({
+                text: safeText(dayData.dayTitle),
+                heading: HeadingLevel.HEADING_1,
+                run: { font: baseFont, size: 28, bold: true },
+                spacing: { after: 120 }
+            }));
 
-            // DepEd Header
+            // 2. DepEd Header Line
             sections.push(new Paragraph({
                 text: "DepED | Dynamic Learning Program | BAGONG PILIPINAS | LEARNING ACTIVITY SHEET",
-                alignment: AlignmentType.CENTER,
-                run: { font: "Century Gothic", size: 20, bold: true },
-                spacing: { after: 200 },
+                alignment: AlignmentType.LEFT, 
+                run: { font: baseFont, size: 20, bold: true },
+                spacing: { after: 240 },
                 border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
             }));
 
-            // Info Section
-            sections.push(new Paragraph({ text: `Subject: ${lasForm.subject}`, run: { font: "Century Gothic", size: 24 }, spacing: { top: 100, after: 50 } }));
-            sections.push(new Paragraph({ text: "Grade & Section: ____________________", run: { font: "Century Gothic", size: 24 }, spacing: { after: 100 } }));
+            // 3. Fields
+            const fieldFont = { font: baseFont, size: 22 };
+            
+            // Subject
             sections.push(new Paragraph({
                 children: [
-                    new TextRun({ text: "Name: ____________________", font: "Century Gothic", size: 24 }),
-                    new TextRun({ text: "\t\t", font: "Century Gothic", size: 24 }),
-                    new TextRun({ text: "Score: __________", font: "Century Gothic", size: 24 }),
-                    new TextRun({ text: "\t\t", font: "Century Gothic", size: 24 }),
-                    new TextRun({ text: "Date: __________", font: "Century Gothic", size: 24 }),
+                    new TextRun({ text: "Subject: ", bold: true, ...fieldFont }),
+                    new TextRun({ text: safeText(lasForm.subject), ...fieldFont })
                 ],
-                spacing: { after: 100 }
+                spacing: { before: 120 }
             }));
-            sections.push(new Paragraph({ text: `Activity Title: ${dayData.activityTitle}`, run: { font: "Century Gothic", size: 24 }, spacing: { after: 50 } }));
-            sections.push(new Paragraph({ text: `Learning Target: ${dayData.learningTarget}`, run: { font: "Century Gothic", size: 24 }, spacing: { after: 100 } }));
-            sections.push(new Paragraph({ text: `Reference: ${dayData.references || '____________________'}`, run: { font: "Century Gothic", size: 24 }, spacing: { after: 200 } }));
 
-            // Main content logic
-            (dayData.conceptNotes || []).forEach(note => {
-                sections.push(new Paragraph({ text: note.title, bold: true, run: { font: "Century Gothic", size: 28 }, spacing: { after: 100 } }));
-                sections.push(...this.parseLasMarkdown(note.content));
-            });
-            
-            (dayData.activities || []).forEach(activity => {
-                sections.push(new Paragraph({ text: activity.title, bold: true, run: { font: "Century Gothic", size: 28 }, spacing: { before: 200, after: 100 } }));
-                
-                const isMatchingType = activity.title.toLowerCase().includes('match');
-                const instructionsLines = activity.instructions.split('\n');
-                const regularInstructions = instructionsLines.filter(line => !line.includes('||')).join('\n');
-                
-                if (regularInstructions.trim()) {
-                    sections.push(new Paragraph({ text: `Directions: ${regularInstructions}`, italics: true, run: { font: "Century Gothic", size: 24 }, spacing: { after: 100 }}));
-                }
+            // Grade & Section
+            sections.push(new Paragraph({
+                children: [
+                    new TextRun({ text: "Grade & Section: ", bold: true, ...fieldFont }),
+                    new TextRun({ text: "________________________________________", ...fieldFont })
+                ],
+                spacing: { before: 60 }
+            }));
 
-                const tableLines = instructionsLines.filter(line => line.includes('||'));
-
-                if (isMatchingType && tableLines.length > 0) {
-                    const tableRows = tableLines.map(line => {
-                        const parts = line.split('||');
-                        return new TableRow({
-                            children: [
-                                new TableCell({ children: this.parseLasMarkdown(parts[0] || ''), width: { size: 50, type: WidthType.PERCENTAGE } }),
-                                new TableCell({ children: this.parseLasMarkdown(parts[1] || ''), width: { size: 50, type: WidthType.PERCENTAGE } }),
-                            ],
-                        });
-                    });
-                    
-                    tableRows.unshift(new TableRow({
+            // Name, Score, Date line - Using a borderless table for perfect alignment
+            const infoRow = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
+                rows: [
+                    new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph({ text: "Column A (Situation)", bold: true, alignment: AlignmentType.CENTER, run: { font: "Century Gothic", size: 24 } })] }),
-                            new TableCell({ children: [new Paragraph({ text: "Column B (Term)", bold: true, alignment: AlignmentType.CENTER, run: { font: "Century Gothic", size: 24 } })] }),
-                        ],
-                        tableHeader: true,
-                    }));
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name: ", bold: true, ...fieldFont }), new TextRun({ text: "__________________________________", ...fieldFont })] })], width: { size: 50, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score: ", bold: true, ...fieldFont }), new TextRun({ text: "_______", ...fieldFont })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date: ", bold: true, ...fieldFont }), new TextRun({ text: "_______", ...fieldFont })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
+                        ]
+                    })
+                ]
+            });
+            sections.push(infoRow);
+            sections.push(new Paragraph({ text: "", spacing: { after: 60 } })); // Spacer
 
-                    sections.push(new Table({ rows: tableRows, width: { size: 100, type: WidthType.PERCENTAGE } }));
-                } else if (activity.instructions.trim()) {
-                    sections.push(...this.parseLasMarkdown(activity.instructions));
+            // Activity Title
+            sections.push(new Paragraph({
+                children: [
+                    new TextRun({ text: "Activity Title: ", bold: true, ...fieldFont }),
+                    new TextRun({ text: safeText(dayData.activityTitle), ...fieldFont })
+                ]
+            }));
+
+            // Learning Target
+            sections.push(new Paragraph({
+                children: [
+                    new TextRun({ text: "Learning Target: ", bold: true, ...fieldFont }),
+                    new TextRun({ text: safeText(dayData.learningTarget), ...fieldFont })
+                ]
+            }));
+
+            // Reference
+            sections.push(new Paragraph({
+                children: [
+                    new TextRun({ text: "Reference: ", bold: true, ...fieldFont }),
+                    new TextRun({ text: safeText(dayData.references) || "____________________", ...fieldFont })
+                ],
+                spacing: { after: 240 } 
+            }));
+
+            // 4. Concept Notes
+            (dayData.conceptNotes || []).forEach(note => {
+                sections.push(new Paragraph({
+                    text: safeText(note.title).toUpperCase(), // Usually "CONCEPT NOTES"
+                    heading: HeadingLevel.HEADING_2,
+                    run: { font: baseFont, size: 24, bold: true },
+                    spacing: { before: 120, after: 120 }
+                }));
+                sections.push(...this.parseLasMarkdown(safeText(note.content)));
+            });
+
+            // 5. Activities
+            (dayData.activities || []).forEach(activity => {
+                // Activity Header
+                sections.push(new Paragraph({
+                    text: safeText(activity.title).toUpperCase(), // e.g. ACTIVITY: MATCHING
+                    heading: HeadingLevel.HEADING_3,
+                    run: { font: baseFont, size: 24, bold: true },
+                    spacing: { before: 240, after: 120 }
+                }));
+
+                const instructions = safeText(activity.instructions);
+                
+                // Check for Table logic (using || separator) to generate "Match the column" tables
+                if (instructions.includes('||')) {
+                     // Separate directions from table content
+                    const lines = instructions.split('\n');
+                    const directionsLines = lines.filter(l => !l.includes('||'));
+                    const tableLines = lines.filter(l => l.includes('||'));
+
+                    if (directionsLines.length > 0) {
+                         sections.push(new Paragraph({
+                            children: [
+                                new TextRun({ text: "Directions: ", bold: true, ...fieldFont }),
+                                new TextRun({ text: directionsLines.join(' '), ...fieldFont })
+                            ],
+                            spacing: { after: 120 }
+                        }));
+                    }
+
+                    if (tableLines.length > 0) {
+                        // Create Table for matching activities
+                         const tableRows = tableLines.map(line => {
+                            const [col1, col2] = line.split('||').map(s => s.trim());
+                            return new TableRow({
+                                children: [
+                                    new TableCell({ children: this.parseLasMarkdown(col1), width: { size: 50, type: WidthType.PERCENTAGE }, padding: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                                    new TableCell({ children: this.parseLasMarkdown(col2), width: { size: 50, type: WidthType.PERCENTAGE }, padding: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                                ]
+                            });
+                        });
+
+                        // Add header row for the matching table
+                        tableRows.unshift(new TableRow({
+                            tableHeader: true,
+                            children: [
+                                new TableCell({ children: [new Paragraph({ text: "Column A", bold: true, alignment: AlignmentType.CENTER, run: fieldFont })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
+                                new TableCell({ children: [new Paragraph({ text: "Column B", bold: true, alignment: AlignmentType.CENTER, run: fieldFont })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
+                            ]
+                        }));
+
+                        sections.push(new Table({
+                            rows: tableRows,
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                        }));
+                        sections.push(new Paragraph({text: ""})); // Spacer
+                    }
+
+                } else {
+                    // Normal text instructions
+                    sections.push(...this.parseLasMarkdown(instructions));
                 }
 
-                if (activity.questions) {
-                    activity.questions.forEach(q => {
-                        sections.push(new Paragraph({ text: q.questionText, numbering: { reference: "las-list", level: 0 }, run: { font: "Century Gothic", size: 24 } }));
+                // Activity Questions
+                if (activity.questions && activity.questions.length > 0) {
+                    activity.questions.forEach((q, i) => {
+                         sections.push(new Paragraph({
+                            children: [
+                                new TextRun({ text: `${i + 1}. `, bold: true, ...fieldFont }),
+                                new TextRun({ text: safeText(q.questionText), ...fieldFont })
+                            ],
+                            spacing: { before: 60 }
+                        }));
+                        if (q.options && q.options.length > 0) {
+                             q.options.forEach((opt, oi) => {
+                                 sections.push(new Paragraph({
+                                    text: `${String.fromCharCode(65+oi)}. ${opt}`,
+                                    indentation: { left: 720 },
+                                    run: fieldFont
+                                 }));
+                             });
+                        } else {
+                            // Blank line for answer if no options
+                            sections.push(new Paragraph({ text: "______________________________________________________", indentation: { left: 720 } }));
+                        }
                     });
                 }
             });
 
-            sections.push(new Paragraph({ text: "REFLECTION", bold: true, run: { font: "Century Gothic", size: 28 }, spacing: { before: 200, after: 100 } }));
-            sections.push(new Paragraph({ text: dayData.reflection, run: { font: "Century Gothic", size: 24 }}));
-            sections.push(new Paragraph({ text: "__________________________________________________________________________________________", run: { font: "Century Gothic", size: 24 }, spacing: { before: 100 }}));
+            // 6. Reflection
+            sections.push(new Paragraph({
+                text: "REFLECTION",
+                heading: HeadingLevel.HEADING_3,
+                run: { font: baseFont, size: 24, bold: true },
+                spacing: { before: 240, after: 120 }
+            }));
+            sections.push(new Paragraph({
+                text: safeText(dayData.reflection),
+                run: fieldFont
+            }));
+             sections.push(new Paragraph({
+                text: "________________________________________________________________________________________________________________________________",
+                spacing: { before: 200 }
+            }));
+             sections.push(new Paragraph({
+                text: "________________________________________________________________________________________________________________________________",
+                spacing: { before: 200 }
+            }));
         });
 
         const doc = new Document({
-             numbering: {
+            numbering: {
                 config: [
                     {
                         reference: "las-list",
@@ -835,7 +955,7 @@ class DocxService {
                             format: LevelFormat.DECIMAL,
                             text: "%1.",
                             indent: { left: 720, hanging: 360 },
-                            run: { font: "Century Gothic", size: 24 }
+                            run: { font: "Arial", size: 22 }
                         }],
                     },
                 ],
@@ -843,16 +963,16 @@ class DocxService {
             sections: [{
                 properties: {
                     page: {
-                        size: { width: 11906, height: 16838 }, // A4 Portrait
-                        margin: { top: 720, right: 720, bottom: 720, left: 720 },
-                    },
+                        size: { width: 12240, height: 18720 }, // 8.5 x 13 Long Bond Paper in Portrait
+                        margin: { top: 720, right: 720, bottom: 720, left: 720 }, // 0.5 inch margins
+                    }
                 },
                 children: sections
             }]
         });
 
         const blob = await Packer.toBlob(doc);
-        this.downloadBlob(blob, `LAS_${lasForm.subject.replace(/\s/g, '_')}.docx`);
+        this.downloadBlob(blob, `LAS_${safeText(lasForm.subject).replace(/\s/g, '_')}.docx`);
     }
 
     public async generateExamDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {

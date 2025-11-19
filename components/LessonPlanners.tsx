@@ -354,7 +354,7 @@ const LessonPlanners: React.FC = () => {
         if (!dlpContent) return { mainContent: '', answerKeyHtml: '', reflectionTableHtml: ''};
         const isFilipino = dlpForm.language === 'Filipino';
         const t = { objectives: isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES', content: isFilipino ? 'II. NILALAMAN' : 'II. CONTENT', resources: isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES', procedure: isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURE', remarks: isFilipino ? 'V. MGA TALA' : 'V. REMARKS', reflection: isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION' };
-        const scheduleHtml = dlpForm.classSchedule.split('\n').map(line => `<span>${line}</span>`).join('<br>');
+        
         const mainContent = `
             <div class="font-serif text-sm">
                 <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${t.objectives}</h3>
