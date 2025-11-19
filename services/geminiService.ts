@@ -1,3 +1,4 @@
+
 import { Type, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { Student, Grade, Anecdote, AIAnalysisResult, ExtractedGrade, ExtractedStudentData, DlpContent, GeneratedQuiz, QuizType, DlpRubricItem, DllContent, AttendanceStatus, DlpProcedure, LearningActivitySheet, CotLessonPlan, CotProcedureStep, ExamObjective, GeneratedExam } from '../types';
 // Fix: Import toast to show error messages to the user.
@@ -529,7 +530,7 @@ export const generateDllContent = async (options: { subject: string; gradeLevel:
 };
 
 const lasQuestionSchema = { type: Type.OBJECT, properties: { questionText: { type: Type.STRING }, type: { type: Type.STRING, enum: ['Identification', 'Essay', 'Problem-solving', 'Multiple Choice'] }, options: { type: Type.ARRAY, items: { type: Type.STRING } }, answer: { type: Type.STRING } }, required: ["questionText", "type"] };
-const lasActivitySchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, instructions: { type: Type.STRING }, questions: { type: Type.ARRAY, items: lasQuestionSchema }, rubric: { type: Type.ARRAY, items: dlpRubricItemSchema } }, required: ["title", "instructions"] };
+const lasActivitySchema = { type: Type.OBJECT, properties: { title: { type: Type.STRING }, instructions: { type: Type.STRING }, questions: { type: Type.ARRAY, items: lasQuestionSchema }, rubric: { type: Type.ARRAY, items: dlpRubricItemSchema } }, required: ["title", "instructions", "questions"] };
 const lasDaySchema = {
     type: Type.OBJECT,
     properties: {
@@ -572,13 +573,13 @@ export const generateLearningActivitySheet = async (options: { subject: string; 
         3.  **activityTitle:** Create a specific title for the activity sheet itself.
         4.  **learningTarget:** Write a specific, measurable sub-objective for the day that scaffolds towards the main weekly objective.
         5.  **references:** Suggest relevant learning materials or sources.
-        6.  **conceptNotes Section:** This MUST be an array with **exactly one object**.
+        6.  **conceptNotes Section:** This MUST be an array containing objects with a title and content.
             - The object's \`title\` property must be exactly "CONCEPT NOTES".
             - The object's \`content\` property should be a clear, detailed explanation of the day's core concept, including definitions and examples. Use markdown for emphasis: **bold text** for key terms, *italic text* for examples, and bullet points starting with '• ' for lists.
-        7.  **activities Section:** This MUST be an array with **exactly one object**.
+        7.  **activities Section:** This MUST be an array containing activity objects.
             - The object's \`title\` property must start with "ACTIVITY:", followed by a descriptive name (e.g., "ACTIVITY: DEFINE AND MATCH").
             - The object's \`instructions\` property must contain clear directions for the student, followed by all activity content.
-            - **IMPORTANT:** All activity content, including questions, scenarios, or tables, must be included within the \`instructions\` string. For matching type activities or simple two-column tables, format each row on a new line using " || " as a separator between the columns. For example: \`1. Judging a person before knowing them. || A. Bias\`. Do NOT use the 'questions' field in the schema.
+            - **IMPORTANT:** All activity content, including questions, scenarios, or tables, must be included within the \`instructions\` string. For matching type activities or simple two-column tables, format each row on a new line using " || " as a separator between the columns. For example: \`1. Judging a person before knowing them. || A. Bias\`. 
         8.  **Day 5 Task:** Ensure the activity for Day 5 is a culminating Performance Task.
         9.  **reflection Section:** This must be a single, thought-provoking question or sentence-completion task related to the day's lesson.
 

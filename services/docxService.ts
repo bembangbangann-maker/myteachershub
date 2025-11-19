@@ -1,3 +1,4 @@
+
 import {
   Document,
   Packer,
@@ -735,7 +736,7 @@ class DocxService {
 
         const sections: (Paragraph | Table | PageBreak)[] = [];
         
-        lasContent.days.forEach((dayData, index) => {
+        lasContent.days?.forEach((dayData, index) => {
             if (index > 0) {
                 sections.push(new PageBreak());
             }
@@ -770,12 +771,12 @@ class DocxService {
             sections.push(new Paragraph({ text: `Reference: ${dayData.references || '____________________'}`, run: { font: "Century Gothic", size: 24 }, spacing: { after: 200 } }));
 
             // Main content logic
-            dayData.conceptNotes.forEach(note => {
+            (dayData.conceptNotes || []).forEach(note => {
                 sections.push(new Paragraph({ text: note.title, bold: true, run: { font: "Century Gothic", size: 28 }, spacing: { after: 100 } }));
                 sections.push(...this.parseLasMarkdown(note.content));
             });
             
-            dayData.activities.forEach(activity => {
+            (dayData.activities || []).forEach(activity => {
                 sections.push(new Paragraph({ text: activity.title, bold: true, run: { font: "Century Gothic", size: 28 }, spacing: { before: 200, after: 100 } }));
                 
                 const isMatchingType = activity.title.toLowerCase().includes('match');

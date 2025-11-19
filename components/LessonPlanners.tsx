@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 import { generateDlpContent, generateQuizContent, generateRubricForActivity, generateDllContent, generateLearningActivitySheet, generateExam } from '../services/geminiService';
-import { DlpContent, GeneratedQuiz, QuizType, DlpRubricItem, GeneratedQuizSection, DllContent, DlpProcedure, LearningActivitySheet, SchoolSettings, ExamObjective, GeneratedExam, LearningActivitySheetDay } from '../types';
+import { DlpContent, GeneratedQuiz, QuizType, DllContent, LearningActivitySheet, ExamObjective, GeneratedExam, GeneratedQuizSection } from '../types';
 import Header from './Header';
 import { SparklesIcon, DownloadIcon, ClipboardCheckIcon, PlusIcon, TrashIcon, RefreshCwIcon } from './icons';
 import { docxService } from '../services/docxService';
@@ -27,7 +28,6 @@ const TextAreaField: React.FC<{ id: string, label: string, value: string, onChan
     </div>
 );
 
-const gradeLevels = ['Kindergarten', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
 const quizTypesList: QuizType[] = ['Multiple Choice', 'True or False', 'Identification'];
 const activityTypes = [
     "Concept Notes", "Skills: Exercise / Drill", "Performance Task", "Illustration / Drawing", "Formal Theme",
@@ -56,7 +56,7 @@ const LessonPlanners: React.FC = () => {
         lessonObjective: '',
         previousLesson: '',
         preparedByName: settings.teacherName.toUpperCase() || '',
-        preparedByDesignation: 'Secondary School Teacher I, Grade 9\nENGLISH Teacher',
+        preparedByDesignation: 'Teacher I',
         checkedByName: (settings.checkedBy || '').toUpperCase(),
         checkedByDesignation: settings.checkerDesignation || 'Learning Area Coordinator',
         approvedByName: (settings.principalName || '').toUpperCase(),
@@ -116,11 +116,10 @@ const LessonPlanners: React.FC = () => {
     const [examQuarter, setExamQuarter] = useState<string>('1');
     const [examContent, setExamContent] = useState<GeneratedExam | null>(null);
 
-
     // Persist form state to localStorage
     useEffect(() => {
         try {
-            const savedState = localStorage.getItem('lessonPlannersState_v2');
+            const savedState = localStorage.getItem('lessonPlannersState_v3');
             if (savedState) {
                 const state = JSON.parse(savedState);
                 if (state.dlpForm) setDlpForm(prev => ({...prev, ...state.dlpForm}));
@@ -145,9 +144,8 @@ const LessonPlanners: React.FC = () => {
 
     useEffect(() => {
         const stateToSave = { dlpForm, dllForm, quizForm, lasForm, activeTab, dlpContent, dllContent, quizContent, lasContent, teacherPosition, dllFormat, examObjectives, examSubject, examGradeLevel, examQuarter, examContent };
-        localStorage.setItem('lessonPlannersState_v2', JSON.stringify(stateToSave));
+        localStorage.setItem('lessonPlannersState_v3', JSON.stringify(stateToSave));
     }, [dlpForm, dllForm, quizForm, lasForm, activeTab, dlpContent, dllContent, quizContent, lasContent, teacherPosition, dllFormat, examObjectives, examSubject, examGradeLevel, examQuarter, examContent]);
-
 
     useEffect(() => {
         setDlpForm(prev => ({
@@ -156,26 +154,19 @@ const LessonPlanners: React.FC = () => {
             schoolName: settings.schoolName,
             preparedByName: settings.teacherName.toUpperCase(),
             checkedByName: (settings.checkedBy || '').toUpperCase(),
-            checkedByDesignation: settings.checkerDesignation || 'Learning Area Coordinator',
             approvedByName: (settings.principalName || '').toUpperCase(),
-            approvedByDesignation: settings.principalDesignation || 'School Principal II',
         }));
         setDllForm(prev => ({
             ...prev,
             preparedByName: settings.teacherName.toUpperCase(),
             checkedByName: (settings.checkedBy || '').toUpperCase(),
-            checkedByDesignation: settings.checkerDesignation || 'Learning Area Coordinator',
             approvedByName: (settings.principalName || '').toUpperCase(),
-            approvedByDesignation: settings.principalDesignation || 'School Principal II',
         }));
     }, [settings]);
 
     const handleDlpFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { id, value } = e.target;
         setDlpForm(prev => ({ ...prev, [id]: value }));
-        if (id === 'teacher') {
-            setDlpForm(prev => ({ ...prev, preparedByName: value.toUpperCase() }));
-        }
     };
     
     const handleDllFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -211,13 +202,11 @@ const LessonPlanners: React.FC = () => {
 
     const handleGenerateRubric = async (activityIndex: number) => {
         if (!quizContent?.activities[activityIndex]) return;
-
         const points = parseInt(activityPoints[activityIndex] || '0', 10);
         if (isNaN(points) || points <= 0) {
             toast.error("Please enter a valid number of points.");
             return;
         }
-
         setGeneratingRubricIndex(activityIndex);
         const toastId = toast.loading(`Generating rubric for activity ${activityIndex + 1}...`);
         try {
@@ -227,16 +216,13 @@ const LessonPlanners: React.FC = () => {
                 activityInstructions: activity.activityInstructions,
                 totalPoints: points,
             });
-            
             setQuizContent(prev => {
                 if (!prev) return null;
                 const newActivities = [...prev.activities];
                 newActivities[activityIndex] = { ...newActivities[activityIndex], rubric: newRubric };
                 return { ...prev, activities: newActivities };
             });
-
             toast.success("Rubric generated successfully!", { id: toastId });
-
         } catch(error) {
             let message = "An unknown error occurred.";
             if (error instanceof Error) message = error.message;
@@ -246,66 +232,35 @@ const LessonPlanners: React.FC = () => {
         }
     };
 
-    const handleAddExamObjective = () => {
-        setExamObjectives(prev => [...prev, { id: `obj-${Date.now()}`, text: '', days: '' }]);
-    };
-
+    const handleAddExamObjective = () => setExamObjectives(prev => [...prev, { id: `obj-${Date.now()}`, text: '', days: '' }]);
     const handleRemoveExamObjective = (id: string) => {
-        if (examObjectives.length > 1) {
-            setExamObjectives(prev => prev.filter(obj => obj.id !== id));
-        } else {
-            toast.error("You must have at least one objective.");
-        }
+        if (examObjectives.length > 1) setExamObjectives(prev => prev.filter(obj => obj.id !== id));
+        else toast.error("You must have at least one objective.");
     };
-
     const handleExamObjectiveChange = (id: string, field: 'text' | 'days', value: string) => {
         setExamObjectives(prev => prev.map(obj => obj.id === id ? { ...obj, [field]: value } : obj));
     };
 
     const handleGenerateExam = async () => {
-        const objectivesWithDays = examObjectives
-            .map(obj => ({ text: obj.text.trim(), days: obj.days.trim() }))
-            .filter(obj => obj.text && obj.days && !isNaN(parseInt(obj.days, 10)) && parseInt(obj.days, 10) > 0);
-        
-        if (objectivesWithDays.length === 0) {
-            toast.error("Please provide at least one valid learning objective with the number of days taught.");
-            return;
-        }
-
+        const objectivesWithDays = examObjectives.map(obj => ({ text: obj.text.trim(), days: obj.days.trim() })).filter(obj => obj.text && obj.days && !isNaN(parseInt(obj.days, 10)) && parseInt(obj.days, 10) > 0);
+        if (objectivesWithDays.length === 0) { toast.error("Please provide at least one valid learning objective with the number of days taught."); return; }
         setIsLoading(true);
         setExamContent(null);
         const toastId = toast.loading('Generating 50-Item Examination...');
-
         try {
-            const content = await generateExam({
-                objectives: objectivesWithDays,
-                subject: examSubject,
-                gradeLevel: examGradeLevel,
-                quarter: examQuarter,
-            });
+            const content = await generateExam({ objectives: objectivesWithDays, subject: examSubject, gradeLevel: examGradeLevel, quarter: examQuarter });
             setExamContent(content);
             toast.success('Examination generated successfully!', { id: toastId });
         } catch (error) {
-            let message = "An unknown error occurred during exam generation.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
+            let message = "An unknown error occurred."; if (error instanceof Error) message = error.message; toast.error(message, { id: toastId });
+        } finally { setIsLoading(false); }
     };
 
     const generateDLP = async () => {
-        const requiredFields: (keyof typeof dlpForm)[] = ['teacher', 'schoolName', 'subject', 'teachingDates', 'classSchedule', 'gradeLevel', 'learningCompetency', 'lessonObjective', 'previousLesson'];
-        if (requiredFields.some(field => !dlpForm[field as keyof typeof dlpForm].trim())) {
-            toast.error('Please fill in all required DLP fields.');
-            return;
-        }
+        if (!dlpForm.subject.trim() || !dlpForm.gradeLevel.trim()) { toast.error('Please fill in all required DLP fields.'); return; }
         setIsLoading(true);
         setDlpContent(null);
-        const toastId = toast.loading('Generating Daily Lesson Plan...', {
-            style: { background: 'var(--info)', color: 'white' },
-            iconTheme: { primary: 'white', secondary: 'var(--info)' },
-        });
+        const toastId = toast.loading('Generating Daily Lesson Plan...');
         try {
             const content = await generateDlpContent({
                 gradeLevel: dlpForm.gradeLevel,
@@ -321,37 +276,22 @@ const LessonPlanners: React.FC = () => {
             setDlpContent(content);
             toast.success('DLP generated successfully!', { id: toastId });
         } catch (error) {
-            let message = "An unknown error occurred.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
+            let message = "An unknown error occurred."; if (error instanceof Error) message = error.message; toast.error(message, { id: toastId });
+        } finally { setIsLoading(false); }
     };
     
     const generateDLL = async () => {
-        if (!dllForm.subject || !dllForm.gradeLevel) {
-            toast.error('Please provide a Subject and Grade Level.');
-            return;
-        }
+        if (!dllForm.subject || !dllForm.gradeLevel) { toast.error('Please provide a Subject and Grade Level.'); return; }
         setIsLoading(true);
         setDllContent(null);
         const toastId = toast.loading('Generating Weekly Plan...');
         try {
-            const content = await generateDllContent({
-                ...dllForm,
-                language: dllForm.language as 'English' | 'Filipino',
-                dllFormat: dllFormat,
-            });
+            const content = await generateDllContent({ ...dllForm, language: dllForm.language as 'English' | 'Filipino', dllFormat });
             setDllContent(content);
             toast.success('Weekly Plan generated successfully!', { id: toastId });
         } catch (error) {
-            let message = "An unknown error occurred.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
+            let message = "An unknown error occurred."; if (error instanceof Error) message = error.message; toast.error(message, { id: toastId });
+        } finally { setIsLoading(false); }
     };
 
     const generateLAS = async () => {
@@ -379,237 +319,59 @@ const LessonPlanners: React.FC = () => {
     };
 
     const generateQuiz = async () => {
-        if (!quizForm.quizTopic.trim() || quizForm.quizTypes.length === 0) {
-            toast.error('Please provide a topic and select at least one quiz format.');
-            return;
-        }
+        if (!quizForm.quizTopic.trim() || quizForm.quizTypes.length === 0) { toast.error('Please provide a topic and select at least one quiz format.'); return; }
         setIsLoading(true);
         setQuizContent(null);
-        const toastId = toast.loading('Generating Quiz & Activities...', {
-             style: { background: 'var(--info)', color: 'white' },
-            iconTheme: { primary: 'white', secondary: 'var(--info)' },
-        });
+        const toastId = toast.loading('Generating Quiz & Activities...');
         try {
-            const content = await generateQuizContent({
-                topic: quizForm.quizTopic,
-                numQuestions: quizForm.numQuestions,
-                quizTypes: quizForm.quizTypes,
-                subject: quizForm.subject,
-                gradeLevel: quizForm.gradeLevel,
-            });
+            const content = await generateQuizContent({ topic: quizForm.quizTopic, numQuestions: quizForm.numQuestions, quizTypes: quizForm.quizTypes, subject: quizForm.subject, gradeLevel: quizForm.gradeLevel });
             setQuizContent(content);
             toast.success('Quiz generated successfully!', { id: toastId });
         } catch (error) {
-            let message = "An unknown error occurred.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
+            let message = "An unknown error occurred."; if (error instanceof Error) message = error.message; toast.error(message, { id: toastId });
+        } finally { setIsLoading(false); }
     };
     
-    const handleDownloadDlpDocx = async () => {
-        if (!dlpContent) {
-            toast.error("No DLP content to download.");
-            return;
-        }
-        setIsLoading(true);
-        const toastId = toast.loading('Generating Word document...');
-        try {
-            await docxService.generateDlpDocx(dlpForm, dlpContent, "", settings);
-            toast.success('DLP downloaded successfully!', { id: toastId });
-        } catch (error) {
-             let message = "An unknown error occurred.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
+    const handleDownloadDlpDocx = async () => { if (!dlpContent) return; setIsLoading(true); try { await docxService.generateDlpDocx(dlpForm, dlpContent, "", settings); toast.success('DLP downloaded successfully!'); } catch (e) { toast.error('Failed to download DLP.'); } finally { setIsLoading(false); } };
+    const handleDownloadDllDocx = async () => { if (!dllContent) return; setIsLoading(true); try { await docxService.generateDllDocx({ ...dllForm, teacher: settings.teacherName, schoolName: settings.schoolName }, dllContent, settings); toast.success('Weekly Plan downloaded successfully!'); } catch (e) { toast.error('Failed to download DLL.'); } finally { setIsLoading(false); } };
+    const handleDownloadLasDocx = async () => { 
+        if (!lasContent) return; 
+        setIsLoading(true); 
+        try { 
+            await docxService.generateLasDocx({ schoolYear: settings.schoolYear, ...lasForm }, lasContent, settings); 
+            toast.success('Learning Sheet downloaded successfully!'); 
+        } catch (e) { 
+            console.error(e);
+            toast.error('Failed to download LAS.'); 
+        } finally { 
+            setIsLoading(false); 
+        } 
     };
-
-    const handleDownloadDllDocx = async () => {
-        if (!dllContent) {
-            toast.error("No Weekly Plan content to download.");
-            return;
-        }
-        setIsLoading(true);
-        const toastId = toast.loading('Generating Word document...');
-        try {
-            const dllExportData = {
-                ...dllForm, // Pass all form fields including signatories
-                teacher: settings.teacherName,
-                schoolName: settings.schoolName,
-            };
-            await docxService.generateDllDocx(dllExportData, dllContent, settings);
-            toast.success('Weekly Plan downloaded successfully!', { id: toastId });
-        } catch (error) {
-            let message = "An unknown error occurred.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-     const handleDownloadLasDocx = async () => {
-        if (!lasContent) {
-            toast.error("No Learning Sheet content to download.");
-            return;
-        }
-        setIsLoading(true);
-        const toastId = toast.loading('Generating Word document...');
-        try {
-            await docxService.generateLasDocx({
-                schoolYear: settings.schoolYear,
-                ...lasForm
-            }, lasContent, settings);
-            toast.success('Learning Sheet downloaded successfully!', { id: toastId });
-        } catch (error) {
-            let message = "An unknown error occurred.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleDownloadQuizDocx = async () => {
-        if (!quizContent) {
-            toast.error("No quiz content to download.");
-            return;
-        }
-        setIsLoading(true);
-        const toastId = toast.loading('Generating Word document...');
-        try {
-            await docxService.generateQuizDocx(quizContent);
-            toast.success('Quiz downloaded successfully!', { id: toastId });
-        } catch (error) {
-            let message = "An unknown error occurred.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleDownloadExamDocx = async () => {
-        if (!examContent) {
-            toast.error("No exam content to download.");
-            return;
-        }
-        setIsLoading(true);
-        const toastId = toast.loading('Generating Examination Word document...');
-        try {
-            await docxService.generateExamDocx(examContent, settings);
-            toast.success('Examination downloaded successfully!', { id: toastId });
-        } catch (error) {
-            let message = "An unknown error occurred during DOCX generation.";
-            if (error instanceof Error) message = error.message;
-            toast.error(message, { id: toastId });
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const handleDownloadQuizDocx = async () => { if (!quizContent) return; setIsLoading(true); try { await docxService.generateQuizDocx(quizContent); toast.success('Quiz downloaded successfully!'); } catch (e) { toast.error('Failed to download Quiz.'); } finally { setIsLoading(false); } };
+    const handleDownloadExamDocx = async () => { if (!examContent) return; setIsLoading(true); try { await docxService.generateExamDocx(examContent, settings); toast.success('Exam downloaded successfully!'); } catch (e) { toast.error('Failed to download Exam.'); } finally { setIsLoading(false); } };
 
     const dlpOutputHtml = useMemo(() => {
         if (!dlpContent) return { mainContent: '', answerKeyHtml: '', reflectionTableHtml: ''};
-
         const isFilipino = dlpForm.language === 'Filipino';
-        const t = {
-            objectives: isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES',
-            contentStandard: isFilipino ? 'Pamantayang Pangnilalaman:' : 'Content Standard:',
-            performanceStandard: isFilipino ? 'Pamantayan sa Pagganap:' : 'Performance Standard:',
-            learningCompetency: isFilipino ? 'Kasanayan sa Pagkatuto:' : 'Learning Competency:',
-            atTheEnd: isFilipino ? 'Sa pagtatapos ng aralin, ang mga mag-aaral ay inaasahang:' : 'At the end of the lesson, the learners should be able to:',
-            content: isFilipino ? 'II. NILALAMAN' : 'II. CONTENT',
-            topic: isFilipino ? 'Paksa:' : 'Topic:',
-            resources: isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES',
-            references: isFilipino ? 'Sanggunian:' : 'References:',
-            materials: isFilipino ? 'Kagamitan:' : 'Materials:',
-            procedure: isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURE',
-            remarks: isFilipino ? 'V. MGA TALA' : 'V. REMARKS',
-            reflection: isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION',
-        };
-
-        const tableStyle = 'width: 100%; border-collapse: collapse; table-layout: fixed;';
-        const cellStyle = 'padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left;';
-        const headerCellStyle = `${cellStyle} font-weight: bold; width: 25%;`;
-        const contentCellStyle = `${cellStyle} width: 45%;`;
-        const ppstCellStyle = `${cellStyle} width: 30%; font-style: italic; font-size: 0.9em; color: var(--primary);`;
-        
+        const t = { objectives: isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES', content: isFilipino ? 'II. NILALAMAN' : 'II. CONTENT', resources: isFilipino ? 'III. KAGAMITANG PANTURO' : 'III. LEARNING RESOURCES', procedure: isFilipino ? 'IV. PAMAMARAAN' : 'IV. PROCEDURE', remarks: isFilipino ? 'V. MGA TALA' : 'V. REMARKS', reflection: isFilipino ? 'VI. PAGNINILAY' : 'VI. REFLECTION' };
         const scheduleHtml = dlpForm.classSchedule.split('\n').map(line => `<span>${line}</span>`).join('<br>');
-        
         const mainContent = `
             <div class="font-serif text-sm">
-                <table style="${tableStyle}">
-                     <tr><td style="${cellStyle}; width: 15%; vertical-align: middle; text-align: center;" rowspan="5">${settings.schoolLogo ? `<img src="${settings.schoolLogo}" alt="logo" style="width: 60px; height: 60px; margin: auto;"/>` : ''}</td><td style="${cellStyle}; width: 55%;"><strong>${isFilipino ? 'Paaralan' : 'School'}:</strong> ${dlpForm.schoolName.toUpperCase()}</td><td style="${cellStyle}; width: 30%; text-align: center; vertical-align: middle;" rowspan="2"><strong>${isFilipino ? 'DETALYADONG BANGHAY-ARALIN SA' : 'DAILY LESSON PLAN IN'}<br/>${dlpForm.subject.toUpperCase()} ${dlpForm.gradeLevel}</strong></td></tr>
-                    <tr><td style="${cellStyle}"><strong>${dlpForm.quarterSelect}</strong></td></tr>
-                    <tr><td style="${cellStyle}"><strong>${isFilipino ? 'Guro' : 'Teacher'}:</strong> ${dlpForm.teacher}</td><td style="${cellStyle}" rowspan="3"><strong>${isFilipino ? 'ISKEDYUL NG KLASE' : 'CLASS SCHEDULE'}</strong><br/>${scheduleHtml}</td></tr>
-                    <tr><td style="${cellStyle}"><strong>${isFilipino ? 'Asignatura' : 'Learning Area'}:</strong> ${dlpForm.subject.toUpperCase()}</td></tr>
-                    <tr><td style="${cellStyle}"><strong>${isFilipino ? 'Petsa ng Pagtuturo' : 'Teaching Dates'}:</strong> ${dlpForm.teachingDates}</td></tr>
-                </table>
                 <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${t.objectives}</h3>
-                <table style="${tableStyle}">
-                    <tr><td style="${headerCellStyle}">${t.contentStandard}</td><td style="${cellStyle}" colspan="2">${dlpContent.contentStandard}</td></tr>
-                    <tr><td style="${headerCellStyle}">${t.performanceStandard}</td><td style="${cellStyle}" colspan="2">${dlpContent.performanceStandard}</td></tr>
-                    <tr><td style="${headerCellStyle}">${t.learningCompetency}</td><td style="${cellStyle}" colspan="2">${dlpForm.learningCompetency}</td></tr>
-                    <tr><td style="${cellStyle}" colspan="3">${t.atTheEnd}</td></tr>
-                    <tr><td style="${cellStyle}" colspan="3"><ul class="list-disc ml-8"><li>${dlpForm.lessonObjective}</li></ul></td></tr>
-                </table>
+                <p><strong>Content Standard:</strong> ${dlpContent.contentStandard}</p>
+                <p><strong>Performance Standard:</strong> ${dlpContent.performanceStandard}</p>
+                <p><strong>Learning Competency:</strong> ${dlpForm.learningCompetency}</p>
+                <p><strong>Objective:</strong> ${dlpForm.lessonObjective}</p>
                 <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${t.content}</h3>
-                <table style="${tableStyle}"><tr><td style="${headerCellStyle}">${t.topic}</td><td style="${cellStyle}" colspan="2">${dlpContent.topic}</td></tr></table>
+                <p><strong>Topic:</strong> ${dlpContent.topic}</p>
                 <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${t.resources}</h3>
-                <table style="${tableStyle}">
-                    <tr><td style="${headerCellStyle}">${t.references}</td><td style="${cellStyle}" colspan="2">${dlpContent.learningReferences}</td></tr>
-                    <tr><td style="${headerCellStyle}">${t.materials}</td><td style="${cellStyle}" colspan="2">${dlpContent.learningMaterials}</td></tr>
-                </table>
+                <p><strong>References:</strong> ${dlpContent.learningReferences}</p>
+                <p><strong>Materials:</strong> ${dlpContent.learningMaterials}</p>
                 <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${t.procedure}</h3>
-                <table style="${tableStyle}">
-                    <thead><tr><th style="${headerCellStyle}">${isFilipino ? 'Pamamaraan' : 'Procedure'}</th><th style="${contentCellStyle}">${isFilipino ? 'Gawain ng Guro/Mag-aaral' : 'Teacher/Student Activity'}</th><th style="${ppstCellStyle}">${isFilipino ? 'Mga Kaugnay na PPST Indicator' : 'Aligned PPST Indicators'}</th></tr></thead>
-                    <tbody>
-                        ${dlpContent.procedures.map(proc => `
-                            <tr>
-                                <td style="${headerCellStyle}">${proc.title}</td>
-                                <td style="${contentCellStyle}">${proc.content.replace(/\n/g, '<br/>')}</td>
-                                <td style="${ppstCellStyle}">${proc.ppst}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-        `;
-        const sectionsForReflection = (dlpForm.classSchedule || '').split('\n').map(line => {
-            const parts = line.match(/([Gg]?\d+\s*-\s*[\w\s]+|[\w\s]+)/);
-            return parts ? parts[0].trim().replace(/,/g, '') : line.trim();
-        }).filter(Boolean);
-
-        const reflectionTableHtml = `
-            <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${t.remarks}</h3>
-            <div style="border: 1px solid var(--base-300); padding: 8px; min-height: 80px;">
-                <p style="border-bottom: 1px solid var(--base-300); height: 24px;">${dlpContent.remarksContent || ''}</p>
-            </div>
-            <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${t.reflection}</h3>
-            <table style="${tableStyle.replace('table-layout: fixed;', '')}">
-                <tbody>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'A. Bilang ng mag-aaral na nakakuha ng 80% sa pagtataya' : 'A. No. of learners who earned 80% in the evaluation'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;">${sectionsForReflection.length > 0 ? sectionsForReflection.map(sec => `<p>___ out of ___ learners earned 80% and above - ${sec}</p>`).join('') : `<p>___ out of ___ learners earned 80% and above</p>`}</td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'B. Bilang ng mag-aaral na nangangailangan ng remediation na nakakuha ng mababa sa 80%' : 'B. No. of learners who require additional activities for remediation who score below 80%'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;">${sectionsForReflection.length > 0 ? sectionsForReflection.map(sec => `<p>___ out of ___ learners require additional activities - ${sec}</p>`).join('') : `<p>___ out of ___ learners require additional activities</p>`}</td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'C. Nakatulong ba ang remedial? Bilang ng mag-aaral na nakaunawa sa aralin.' : 'C. Did the remedial lessons work? No. of learners who have caught up with the lessons.'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> ${isFilipino ? 'Oo' : 'YES'} <span>☐</span> ${isFilipino ? 'Hindi' : 'NO'}</p><p><span>☐</span> ___ ${isFilipino ? 'na mag-aaral ang nakaunawa sa aralin' : 'learners caught up with the lesson'}</p></td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'D. Bilang ng mga mag-aaral na magpapatuloy sa remediation.' : 'D. No. of learners who continue to require remediation'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> ___ ${isFilipino ? 'na mag-aaral ang magpapatuloy sa remediation' : 'learners continue to require remediation'}</p></td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'E. Alin sa mga istratehiyang pagtuturo nakatulong ng lubos? Paano ito nakatulong?' : 'E. Which of my teaching strategies work well? Why did this work?'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"><p><span>☐</span> experiment</p><p><span>☐</span> collaborative learning</p><p><span>☐</span> differentiated instruction</p><p><span>☐</span> lecture</p><p><span>☐</span> think-pair-share</p><p><span>☐</span> role play</p><p><span>☐</span> discovery</p><p><span>☐</span> others</p></td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'F. Anong suliranin ang aking naranasan na solusyunan sa tulong ng aking punungguro at superbisor?' : 'F. What difficulties did I encounter which my principal or supervisor can help me solve?'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"></td></tr>
-                    <tr><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; font-weight: bold; width: 40%;">${isFilipino ? 'G. Anong kagamitang panturo ang aking nadibuho na nais kong ibahagi sa mga kapwa ko guro?' : 'G. What innovation or localized materials did I use/discover which I wish to share with other teachers?'}</td><td style="padding: 8px; border: 1px solid var(--base-300); vertical-align: top; text-align: left; width: 60%;"></td></tr>
-                </tbody>
-            </table>
-        `;
-
-        const answerKeyHtml = `
-            <h3 class="text-lg font-bold mt-4 mb-2 bg-base-300/30 p-1">${isFilipino ? 'Susi sa Pagwawasto' : 'Answer Key'} (For Evaluating Learning)</h3>
-            <ol class="list-decimal list-inside">
-                ${dlpContent.evaluationQuestions.map(q => `<li>${q.answer}</li>`).join('')}
-            </ol>
-        `;
-
-        return { mainContent, answerKeyHtml, reflectionTableHtml };
-    }, [dlpContent, dlpForm, settings]);
+                ${dlpContent.procedures.map(proc => `<div class="mb-2"><p class="font-bold">${proc.title}</p><p>${proc.content.replace(/\n/g, '<br/>')}</p></div>`).join('')}
+            </div>`;
+        return { mainContent, answerKeyHtml: '', reflectionTableHtml: '' };
+    }, [dlpContent, dlpForm]);
 
     return (
         <div className="min-h-screen">
@@ -624,9 +386,7 @@ const LessonPlanners: React.FC = () => {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Controls Column */}
                     <div className="bg-base-200 p-6 rounded-xl shadow-lg self-start">
-                        {/* DLP FORM */}
                         {activeTab === 'dlp' && (
                             <form onSubmit={(e) => { e.preventDefault(); generateDLP(); }} className="space-y-4">
                                 <h2 className="text-xl font-bold text-base-content mb-2">DLP Details</h2>
@@ -637,7 +397,7 @@ const LessonPlanners: React.FC = () => {
                                 <TextAreaField id="learningCompetency" label="Learning Competency" value={dlpForm.learningCompetency} onChange={handleDlpFormChange} required placeholder="e.g., EN9G-IIa-19: Use adverbs in narration" />
                                 <TextAreaField id="lessonObjective" label="Specific Lesson Objective" value={dlpForm.lessonObjective} onChange={handleDlpFormChange} required placeholder="e.g., Identify and use adverbs of manner in sentences." />
                                 <InputField id="previousLesson" label="Previous Lesson" value={dlpForm.previousLesson} onChange={handleDlpFormChange} required placeholder="e.g., Types of Adjectives" />
-                                 <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-4">
                                     <div><label htmlFor="language" className="block text-sm font-medium text-base-content mb-1">Language</label><select id="language" value={dlpForm.language} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10"><option>English</option><option>Filipino</option></select></div>
                                     <div><label htmlFor="dlpFormat" className="block text-sm font-medium text-base-content mb-1">DLP Format</label><select id="dlpFormat" value={dlpForm.dlpFormat} onChange={handleDlpFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10"><option>Standard DepEd</option><option>4As</option><option>5Es</option><option>Explicit Instruction</option></select></div>
                                 </div>
@@ -655,7 +415,6 @@ const LessonPlanners: React.FC = () => {
                             </form>
                         )}
 
-                        {/* DLL FORM */}
                         {activeTab === 'dll' && (
                              <form onSubmit={(e) => { e.preventDefault(); generateDLL(); }} className="space-y-4">
                                 <h2 className="text-xl font-bold text-base-content mb-2">Weekly Plan Details</h2>
@@ -680,7 +439,6 @@ const LessonPlanners: React.FC = () => {
                              </form>
                         )}
 
-                        {/* QUIZ FORM */}
                         {activeTab === 'quiz' && (
                             <form onSubmit={(e) => { e.preventDefault(); generateQuiz(); }} className="space-y-4">
                                 <h2 className="text-xl font-bold text-base-content mb-2">Quiz Details</h2>
@@ -707,7 +465,6 @@ const LessonPlanners: React.FC = () => {
                             </form>
                         )}
 
-                        {/* LAS FORM */}
                          {activeTab === 'las' && (
                             <form onSubmit={(e) => { e.preventDefault(); generateLAS(); }} className="space-y-4">
                                 <h2 className="text-xl font-bold text-base-content mb-2">Activity Sheet Details</h2>
@@ -735,7 +492,6 @@ const LessonPlanners: React.FC = () => {
                             </form>
                          )}
 
-                         {/* EXAM FORM */}
                          {activeTab === 'exam' && (
                              <div className="space-y-4">
                                  <h2 className="text-xl font-bold text-base-content mb-2">Periodical Exam Details</h2>
@@ -767,7 +523,6 @@ const LessonPlanners: React.FC = () => {
                          )}
                     </div>
 
-                    {/* Preview Column */}
                     <div className="bg-base-200 p-6 rounded-xl shadow-lg">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-xl font-bold text-base-content">Preview</h2>
@@ -842,14 +597,14 @@ const LessonPlanners: React.FC = () => {
                                                 <p><strong>Learning Target:</strong> {day.learningTarget}</p>
                                             </div>
                                             
-                                            {day.conceptNotes.map((note, idx) => (
+                                            {day.conceptNotes?.map((note, idx) => (
                                                 <div key={idx} className="mb-4">
                                                     <h4 className="font-bold uppercase mb-1">{note.title}</h4>
                                                     <div className="text-justify whitespace-pre-wrap">{note.content}</div>
                                                 </div>
                                             ))}
 
-                                            {day.activities.map((act, idx) => (
+                                            {day.activities?.map((act, idx) => (
                                                 <div key={idx} className="mb-4">
                                                     <h4 className="font-bold uppercase mb-1">{act.title}</h4>
                                                     <div className="whitespace-pre-wrap mb-2">{act.instructions}</div>
