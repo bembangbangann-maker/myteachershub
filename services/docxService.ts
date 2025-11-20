@@ -19,6 +19,7 @@ import {
   IImageOptions,
   VerticalAlign,
   ShadingType,
+  Header,
 } from 'docx';
 import { Student, SchoolSettings, Attendance, Quarter, SubjectQuarterSettings, StudentQuarterlyRecord, MapehRecordDocxData, GeneratedQuiz, QuizType, DlpContent, GeneratedQuizSection, DllContent, LearningActivitySheet, GeneratedExam, StudentProfileDocxData, CertificateSettings, HonorsCertificateSettings } from '../types';
 import { toast } from 'react-hot-toast';
@@ -249,12 +250,11 @@ class DocxService {
     
     private parseLasMarkdown(markdownText: string): Paragraph[] {
         const text = this.safeString(markdownText);
-        // Standardize Font: Century Gothic, Size 14 (28 half-points)
+        // Standardize Font: Century Gothic, Size 14 (28 half-points) for Body
         const baseFont = "Century Gothic";
-        const fontSize = 28; // 14pt
+        const fontSize = 24; // 12pt for general text
         const fontOptions = { font: baseFont, size: fontSize };
 
-        // CRITICAL FIX: Prevent "Word experienced an error" by ensuring we never return an empty array of paragraphs.
         if (!text || text.trim() === '') {
             return [new Paragraph({ children: [new TextRun({ text: " ", ...fontOptions })], spacing: { after: 0 } })];
         }
@@ -263,29 +263,24 @@ class DocxService {
         const lines = text.split('\n');
 
         for (const line of lines) {
-            // Even empty lines in the text block should produce a valid Paragraph with an empty TextRun to hold spacing
             if (line.trim() === '') {
                 paragraphs.push(new Paragraph({ children: [new TextRun({ text: " ", ...fontOptions })], spacing: { after: 120 } }));
                 continue;
             }
 
             const children: TextRun[] = [];
-            // Regex to split by bold (**) and italic (*) markers
             const parts = line.split(/(\*\*.*?\*\*|\*.*?\*)/g).filter(p => p !== '');
 
             for (const part of parts) {
                 if (part.startsWith('**') && part.endsWith('**')) {
-                    // Remove asterisks, apply Bold
                     children.push(new TextRun({ text: part.slice(2, -2), bold: true, ...fontOptions }));
                 } else if (part.startsWith('*') && part.endsWith('*')) {
-                    // Remove asterisks, apply Italic
                     children.push(new TextRun({ text: part.slice(1, -1), italics: true, ...fontOptions }));
                 } else {
                     children.push(new TextRun({ text: part, ...fontOptions }));
                 }
             }
             
-            // Check for bullet points or numbered lists visually
             const isListItem = /^\s*•\s+/.test(line.trim()) || /^\d+\./.test(line.trim());
             const isSubListItem = /^\s*o\s+/.test(line.trim());
 
@@ -293,7 +288,7 @@ class DocxService {
                 children: children.length > 0 ? children : [new TextRun({ text: " ", ...fontOptions })],
                 bullet: isSubListItem ? { level: 1 } : (isListItem ? { level: 0 } : undefined),
                 indent: isSubListItem ? { left: 1080, hanging: 360 } : (isListItem ? { left: 720, hanging: 360 } : undefined),
-                spacing: { after: 120 } // Standard spacing
+                spacing: { after: 120 } 
             }));
         }
 
@@ -305,7 +300,6 @@ class DocxService {
     }
 
     public async generateQuizDocx(quiz: GeneratedQuiz): Promise<void> {
-        // ... (Code omitted for brevity, assumes similar null checks implemented if not already present)
          const { quizTitle, questionsByType, activities, tableOfSpecifications } = quiz;
 
         const numbering = {
@@ -453,7 +447,6 @@ class DocxService {
         htmlContent: string, 
         settings: SchoolSettings
     ): Promise<void> {
-         // ... (Assuming existing code here is preserved or safe, only LAS was corrupted)
           const isFilipino = dlpForm.language === 'Filipino';
         const t = {
             objectives: isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES',
@@ -596,7 +589,6 @@ class DocxService {
         dllContent: DllContent,
         settings: SchoolSettings
     ): Promise<void> {
-         // ... (Same as before, checking strictness of safeString)
         // Corrected page size for 8.5" x 13" (Long Bond Paper) in landscape
         const pageHeight = 18720;
         const pageWidth = 12240;
@@ -747,99 +739,163 @@ class DocxService {
     ): Promise<void> {
         const sections: (Paragraph | Table | PageBreak)[] = [];
         const baseFont = "Century Gothic";
-        const fontSize = 28; // 14pt
-        const fieldFont = { font: baseFont, size: fontSize };
-        const headerFont = { font: baseFont, size: fontSize, bold: true };
+        const headerFontSize = 22; // 11pt for header info to fit
+        const contentFontSize = 24; // 12pt for body content
+        
+        const headerFont = { font: baseFont, size: headerFontSize, bold: true };
+        const fieldFont = { font: baseFont, size: headerFontSize };
+        const contentFont = { font: baseFont, size: contentFontSize };
+        const titleFont = { font: baseFont, size: 32, bold: true }; // 16pt
 
         const days = lasContent?.days || [];
 
         days.forEach((dayData, index) => {
             if (index > 0) {
-                // Horizontal line separator between days (Screenshot 2)
-                sections.push(new Paragraph({
-                    border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
-                    spacing: { before: 240, after: 240 }
-                }));
+                sections.push(new PageBreak());
             }
 
-            // 1. Day Title
-            sections.push(new Paragraph({
-                children: [new TextRun({ text: this.safeString(dayData.dayTitle), ...headerFont })],
-                heading: HeadingLevel.HEADING_1,
-                spacing: { after: 120 }
-            }));
-
-            // 2. DepEd Header
-            sections.push(new Paragraph({
-                children: [new TextRun({ text: "DepED | Dynamic Learning Program | BAGONG PILIPINAS | LEARNING ACTIVITY SHEET", font: baseFont, size: fontSize })],
-                spacing: { after: 240 }
-            }));
-
-            // 3. Info Fields
-            // Subject
-            sections.push(new Paragraph({
-                children: [
-                    new TextRun({ text: "Subject: ", ...headerFont }),
-                    new TextRun({ text: this.safeString(lasForm.subject), ...fieldFont })
-                ],
-                spacing: { after: 60 }
-            }));
+            // --- HEADER TABLE STRUCTURE ---
             
-            // Grade & Section
-            sections.push(new Paragraph({
+            // 1. TOP ROW: Logo | Center Text | Right Info Box
+            const topHeaderRow = new TableRow({
                 children: [
-                    new TextRun({ text: "Grade & Section: ", ...headerFont }),
-                    new TextRun({ text: "________________", ...fieldFont })
-                ],
-                spacing: { after: 60 }
+                    // Left: Logos
+                    new TableCell({
+                        width: { size: 20, type: WidthType.PERCENTAGE },
+                        children: [
+                            new Paragraph({
+                                children: [
+                                    this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60) || new TextRun(""),
+                                    new TextRun("  "),
+                                    this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 60, 60) || new TextRun(""),
+                                ],
+                                alignment: AlignmentType.LEFT,
+                            })
+                        ],
+                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
+                    }),
+                    // Center: Dynamic Learning Program
+                    new TableCell({
+                        width: { size: 40, type: WidthType.PERCENTAGE },
+                        verticalAlign: VerticalAlign.CENTER,
+                        children: [
+                            new Paragraph({
+                                children: [new TextRun({ text: "Dynamic Learning Program", font: baseFont, size: 28, bold: true })],
+                                alignment: AlignmentType.CENTER,
+                            })
+                        ],
+                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
+                    }),
+                    // Right: Info Box (SY, Subject, LAS No.)
+                    new TableCell({
+                        width: { size: 40, type: WidthType.PERCENTAGE },
+                        children: [
+                            new Table({
+                                width: { size: 100, type: WidthType.PERCENTAGE },
+                                rows: [
+                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `S.Y. ${this.safeString(settings.schoolYear)}`, ...headerFont })], alignment: AlignmentType.CENTER })], borders: { bottom: { style: BorderStyle.SINGLE, size: 6 } } })] }),
+                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Subject: ", ...headerFont }), new TextRun({ text: this.safeString(lasForm.subject), ...fieldFont })] })], borders: { bottom: { style: BorderStyle.SINGLE, size: 6 } } })] }),
+                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Q1 - LAS - _________", ...headerFont })] })] })] }),
+                                ]
+                            })
+                        ],
+                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } }
+                    })
+                ]
+            });
+
+            const headerTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [topHeaderRow],
+                borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }
+            });
+
+            sections.push(headerTable);
+            
+            // 2. Title
+            sections.push(new Paragraph({
+                children: [new TextRun({ text: "LEARNING ACTIVITY SHEET", ...titleFont })],
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 120, after: 120 }
             }));
 
-            // Name, Score, Date line
-             // Screenshot 1 shows Name, Score, Date on one line.
-            const infoRow = new Table({
+            // 3. Student Info Grid
+            const studentInfoTable = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
-                borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
                 rows: [
                     new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name: ", ...headerFont }), new TextRun({ text: "__________________________________", ...fieldFont })] })], width: { size: 55, type: WidthType.PERCENTAGE } }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score: ", ...headerFont }), new TextRun({ text: "________", ...fieldFont })] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date: ", ...headerFont }), new TextRun({ text: "________", ...fieldFont })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name: _______________________________________", ...fieldFont })] })], width: { size: 70, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score: ________", ...fieldFont })] })], width: { size: 30, type: WidthType.PERCENTAGE } }),
+                        ]
+                    }),
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Grade & Section: ${this.safeString(lasForm.gradeLevel)} - _______________`, ...fieldFont })] })] }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date: ________", ...fieldFont })] })] }),
                         ]
                     })
                 ]
             });
-            sections.push(infoRow);
-            sections.push(new Paragraph({ text: "", spacing: { after: 60 } })); // Spacer
+            sections.push(studentInfoTable);
 
-            // Activity Title
-            sections.push(new Paragraph({
-                children: [
-                    new TextRun({ text: "Activity Title: ", ...headerFont }),
-                    new TextRun({ text: this.safeString(dayData.activityTitle), ...fieldFont })
-                ],
-                spacing: { after: 60 }
-            }));
+            // 4. Type of Activity
+            const activityTypeMap = {
+                "Concept Notes": "Concept Notes",
+                "Skills: Exercise / Drill": "Skills: Exercise / Drill",
+                "Performance Task": "Performance Task",
+                "Illustration": "Illustration",
+                "Formal Theme": "Formal Theme",
+                "Informal Theme": "Informal Theme",
+                "Others": "Others"
+            };
+            
+            // Helper for checkboxes
+            const cb = (label: string) => {
+                const isChecked = this.safeString(lasForm.activityType).toLowerCase().includes(label.toLowerCase().split(':')[0]); // Fuzzy match start
+                return isChecked ? `\u2611 ${label}` : `\u2610 ${label}`;
+            };
 
-            // Learning Target
-            sections.push(new Paragraph({
-                children: [
-                    new TextRun({ text: "Learning Target: ", ...headerFont }),
-                    new TextRun({ text: this.safeString(dayData.learningTarget), ...fieldFont })
-                ],
-                spacing: { after: 60 }
-            }));
+            const activityTypeTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Type of Activity: (Check or choose from below.)", ...headerFont })] })], columnSpan: 4, borders: { bottom: { style: BorderStyle.NONE } } })] }),
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ text: cb("Concept Notes"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Performance Task"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Formal Theme"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Others: ________"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE } } }),
+                        ]
+                    }),
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ text: cb("Skills: Exercise / Drill"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Illustration"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Informal Theme"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: "", ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE } } }),
+                        ]
+                    })
+                ]
+            });
+            sections.push(activityTypeTable);
 
-            // Reference
-            sections.push(new Paragraph({
-                children: [
-                    new TextRun({ text: "Reference:", ...headerFont }),
-                    new TextRun({ text: this.safeString(dayData.references) ? ` ${this.safeString(dayData.references)}` : "", ...fieldFont })
-                ],
-                spacing: { after: 240 }
-            }));
+            // 5. Details Table (Title, Target, Ref)
+            const detailsTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Activity Title: ", ...headerFont }), new TextRun({ text: this.safeString(dayData.activityTitle), ...fieldFont })] })] })] }),
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Learning Target: ", ...headerFont }), new TextRun({ text: this.safeString(dayData.learningTarget), ...fieldFont })] })] })] }),
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "References: ", ...headerFont }), new TextRun({ text: "(Author, Title, Pages) " + this.safeString(dayData.references), ...fieldFont })] })] })] }),
+                ]
+            });
+            sections.push(detailsTable);
+            
+            // Spacer
+            sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
 
-            // 4. Concept Notes
+            // --- CONTENT ---
+            // Concept Notes
             if (dayData.conceptNotes && Array.isArray(dayData.conceptNotes)) {
                 dayData.conceptNotes.forEach(note => {
                     sections.push(new Paragraph({
@@ -850,10 +906,9 @@ class DocxService {
                 });
             }
 
-            // 5. Activities
+            // Activities
              if (dayData.activities && Array.isArray(dayData.activities)) {
                 dayData.activities.forEach(activity => {
-                    // Activity Header
                     sections.push(new Paragraph({
                         children: [new TextRun({ text: this.safeString(activity.title).toUpperCase(), ...headerFont })],
                         spacing: { before: 240, after: 120 }
@@ -862,7 +917,6 @@ class DocxService {
                     const instructions = this.safeString(activity.instructions);
                     
                     if (instructions.includes('||')) {
-                        // Table Match Logic
                         const lines = instructions.split('\n');
                         const directionsLines = lines.filter(l => !l.includes('||'));
                         const tableLines = lines.filter(l => l.includes('||'));
@@ -871,7 +925,7 @@ class DocxService {
                             sections.push(new Paragraph({
                                 children: [
                                     new TextRun({ text: "Directions: ", ...headerFont }),
-                                    new TextRun({ text: directionsLines.join(' '), ...fieldFont })
+                                    new TextRun({ text: directionsLines.join(' '), ...contentFont })
                                 ],
                                 spacing: { after: 120 }
                             }));
@@ -908,13 +962,12 @@ class DocxService {
                          sections.push(...this.parseLasMarkdown(instructions));
                     }
 
-                    // Activity Questions
                      if (activity.questions && activity.questions.length > 0) {
                         activity.questions.forEach((q, i) => {
                             sections.push(new Paragraph({
                                 children: [
                                     new TextRun({ text: `${i + 1}. `, ...headerFont }),
-                                    new TextRun({ text: this.safeString(q.questionText), ...fieldFont })
+                                    new TextRun({ text: this.safeString(q.questionText), ...contentFont })
                                 ],
                                 spacing: { before: 60 }
                             }));
@@ -923,36 +976,35 @@ class DocxService {
                                     sections.push(new Paragraph({
                                         text: `${String.fromCharCode(65+oi)}. ${this.safeString(opt)}`,
                                         indentation: { left: 720 },
-                                        run: fieldFont
+                                        run: contentFont
                                     }));
                                 });
                             } else {
-                                sections.push(new Paragraph({ text: "________________________________________", indentation: { left: 720 }, run: fieldFont }));
+                                sections.push(new Paragraph({ text: "________________________________________", indentation: { left: 720 }, run: contentFont }));
                             }
                         });
                     }
                 });
              }
 
-             // 6. Reflection
+             // Reflection
              sections.push(new Paragraph({
                 children: [new TextRun({ text: "REFLECTION", ...headerFont })],
                 spacing: { before: 240, after: 120 }
             }));
             sections.push(new Paragraph({
                 text: this.safeString(dayData.reflection),
-                run: fieldFont
+                run: contentFont
             }));
-            // Add lines for writing
             sections.push(new Paragraph({
                 text: "________________________________________________________________________________________________________________________________",
                 spacing: { before: 200 },
-                run: fieldFont
+                run: contentFont
             }));
              sections.push(new Paragraph({
                 text: "________________________________________________________________________________________________________________________________",
                 spacing: { before: 200 },
-                run: fieldFont
+                run: contentFont
             }));
 
         });
@@ -967,7 +1019,7 @@ class DocxService {
                             format: LevelFormat.DECIMAL,
                             text: "%1.",
                             indent: { left: 720, hanging: 360 },
-                            run: { font: "Century Gothic", size: 28 } // 14pt
+                            run: { font: "Century Gothic", size: 24 }
                         }],
                     },
                 ],
