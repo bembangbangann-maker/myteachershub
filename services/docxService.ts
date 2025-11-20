@@ -20,6 +20,7 @@ import {
   VerticalAlign,
   ShadingType,
   Header,
+  convertInchesToTwip,
 } from 'docx';
 import { Student, SchoolSettings, Attendance, Quarter, SubjectQuarterSettings, StudentQuarterlyRecord, MapehRecordDocxData, GeneratedQuiz, QuizType, DlpContent, GeneratedQuizSection, DllContent, LearningActivitySheet, GeneratedExam, StudentProfileDocxData, CertificateSettings, HonorsCertificateSettings } from '../types';
 import { toast } from 'react-hot-toast';
@@ -170,10 +171,10 @@ class DocxService {
                         data: this.base64ToArrayBuffer(fallbackImageData),
                     },
                     ...options
-                });
+                } as any);
             } else {
                  return new ImageRun({
-                    type: parsedImage.type,
+                    type: parsedImage.type as "jpg" | "png" | "gif" | "bmp",
                     data: this.base64ToArrayBuffer(parsedImage.data),
                     transformation: {
                         width: width,
@@ -184,7 +185,6 @@ class DocxService {
             }
         } catch (e) {
             console.error("Failed to create ImageRun. The image data might be corrupt.", e);
-            toast.error("An error occurred while processing an image for the document.");
             return undefined;
         }
     }
@@ -250,9 +250,8 @@ class DocxService {
     
     private parseLasMarkdown(markdownText: string): Paragraph[] {
         const text = this.safeString(markdownText);
-        // Standardize Font: Century Gothic, Size 14 (28 half-points) for Body
         const baseFont = "Century Gothic";
-        const fontSize = 24; // 12pt for general text
+        const fontSize = 28; // 14pt
         const fontOptions = { font: baseFont, size: fontSize };
 
         if (!text || text.trim() === '') {
@@ -299,6 +298,323 @@ class DocxService {
         return paragraphs;
     }
 
+    public async generateLasDocx(
+        lasForm: any,
+        lasContent: LearningActivitySheet,
+        settings: SchoolSettings
+    ): Promise<void> {
+        const sections: (Paragraph | Table | Paragraph)[] = [];
+        const baseFont = "Century Gothic";
+        const headerFontSize = 22; // 11pt
+        const contentFontSize = 28; // 14pt
+        
+        const headerFont = { font: baseFont, size: headerFontSize, bold: true };
+        const fieldFont = { font: baseFont, size: headerFontSize };
+        const contentFont = { font: baseFont, size: contentFontSize };
+        const titleFont = { font: baseFont, size: 32, bold: true }; // 16pt
+
+        const days = lasContent?.days || [];
+        
+        if (days.length === 0) {
+             sections.push(new Paragraph({ text: "No content generated for LAS." }));
+        }
+
+        days.forEach((dayData, index) => {
+            if (index > 0) {
+                sections.push(new Paragraph({ children: [new PageBreak()] }));
+            }
+
+            // --- HEADER TABLE STRUCTURE ---
+            
+            const secondLogoRun = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60) || new TextRun("");
+            const schoolLogoRun = this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 60, 60) || new TextRun("");
+
+            // 1. TOP ROW: Logo | Center Text | Right Info Box
+            const topHeaderRow = new TableRow({
+                children: [
+                    // Left: Logos
+                    new TableCell({
+                        width: { size: 20, type: WidthType.PERCENTAGE },
+                        children: [
+                            new Paragraph({
+                                children: [
+                                    secondLogoRun,
+                                    new TextRun("  "),
+                                    schoolLogoRun,
+                                ],
+                                alignment: AlignmentType.LEFT,
+                            })
+                        ],
+                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
+                    }),
+                    // Center: Dynamic Learning Program
+                    new TableCell({
+                        width: { size: 40, type: WidthType.PERCENTAGE },
+                        verticalAlign: VerticalAlign.CENTER,
+                        children: [
+                            new Paragraph({
+                                children: [new TextRun({ text: "Dynamic Learning Program", font: baseFont, size: 28, bold: true })],
+                                alignment: AlignmentType.CENTER,
+                            })
+                        ],
+                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
+                    }),
+                    // Right: Info Box (SY, Subject, LAS No.)
+                    new TableCell({
+                        width: { size: 40, type: WidthType.PERCENTAGE },
+                        children: [
+                            new Table({
+                                width: { size: 100, type: WidthType.PERCENTAGE },
+                                rows: [
+                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `S.Y. ${this.safeString(settings.schoolYear)}`, ...headerFont })], alignment: AlignmentType.CENTER })], borders: { bottom: { style: BorderStyle.SINGLE, size: 6 }, top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })] }),
+                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Subject: ", ...headerFont }), new TextRun({ text: this.safeString(lasForm.subject), ...fieldFont })] })], borders: { bottom: { style: BorderStyle.SINGLE, size: 6 }, top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })] }),
+                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Q1 - LAS - _________", ...headerFont })] })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })] }),
+                                ]
+                            })
+                        ],
+                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } }
+                    })
+                ]
+            });
+
+            const headerTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [topHeaderRow],
+                borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }
+            });
+
+            sections.push(headerTable);
+            
+            // 2. Title
+            sections.push(new Paragraph({
+                children: [new TextRun({ text: "LEARNING ACTIVITY SHEET", ...titleFont })],
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 120, after: 120 }
+            }));
+
+            // 3. Student Info Grid
+            const studentInfoTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name: _______________________________________", ...fieldFont })] })], width: { size: 70, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score: ________", ...fieldFont })] })], width: { size: 30, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                        ]
+                    }),
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Grade & Section: ${this.safeString(lasForm.gradeLevel)} - _______________`, ...fieldFont })] })], width: { size: 70, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date: ________", ...fieldFont })] })], width: { size: 30, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                        ]
+                    })
+                ]
+            });
+            sections.push(studentInfoTable);
+
+            // 4. Type of Activity
+            const cb = (label: string) => {
+                const isChecked = this.safeString(lasForm.activityType).toLowerCase().includes(label.toLowerCase().split(':')[0]);
+                return isChecked ? `\u2611 ${label}` : `\u2610 ${label}`;
+            };
+
+            const activityTypeTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Type of Activity: (Check or choose from below.)", ...headerFont })] })], columnSpan: 4, borders: { bottom: { style: BorderStyle.NONE } } })] }),
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ text: cb("Concept Notes"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Performance Task"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Formal Theme"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Others: ________"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE } } }),
+                        ]
+                    }),
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ text: cb("Skills: Exercise / Drill"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Illustration"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: cb("Informal Theme"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: "", ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE } } }),
+                        ]
+                    })
+                ]
+            });
+            sections.push(activityTypeTable);
+
+            // 5. Details Table (Title, Target, Ref)
+            const detailsTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Activity Title: ", ...headerFont }), new TextRun({ text: this.safeString(dayData.activityTitle), ...fieldFont })] })] })] }),
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Learning Target: ", ...headerFont }), new TextRun({ text: this.safeString(dayData.learningTarget), ...fieldFont })] })] })] }),
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "References: ", ...headerFont }), new TextRun({ text: "(Author, Title, Pages) " + this.safeString(dayData.references), ...fieldFont })] })] })] }),
+                ]
+            });
+            sections.push(detailsTable);
+            
+            // Spacer
+            sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
+
+            // --- CONTENT ---
+            if (dayData.conceptNotes && Array.isArray(dayData.conceptNotes)) {
+                dayData.conceptNotes.forEach(note => {
+                    sections.push(new Paragraph({
+                        children: [new TextRun({ text: this.safeString(note.title).toUpperCase(), ...headerFont })],
+                        spacing: { before: 120, after: 120 }
+                    }));
+                    sections.push(...this.parseLasMarkdown(this.safeString(note.content)));
+                });
+            }
+
+             if (dayData.activities && Array.isArray(dayData.activities)) {
+                dayData.activities.forEach(activity => {
+                    sections.push(new Paragraph({
+                        children: [new TextRun({ text: this.safeString(activity.title).toUpperCase(), ...headerFont })],
+                        spacing: { before: 240, after: 120 }
+                    }));
+
+                    const instructions = this.safeString(activity.instructions);
+                    
+                    if (instructions.includes('||')) {
+                        const lines = instructions.split('\n');
+                        const directionsLines = lines.filter(l => !l.includes('||'));
+                        const tableLines = lines.filter(l => l.includes('||'));
+
+                        if (directionsLines.length > 0) {
+                            sections.push(new Paragraph({
+                                children: [
+                                    new TextRun({ text: "Directions: ", ...headerFont }),
+                                    new TextRun({ text: directionsLines.join(' '), ...contentFont })
+                                ],
+                                spacing: { after: 120 }
+                            }));
+                        }
+
+                        if (tableLines.length > 0) {
+                             const tableRows = tableLines.map(line => {
+                                const parts = line.split('||');
+                                const col1 = this.safeString(parts[0] || "").trim();
+                                const col2 = this.safeString(parts[1] || "").trim();
+                                return new TableRow({
+                                    children: [
+                                        new TableCell({ children: this.parseLasMarkdown(col1), width: { size: 50, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                                        new TableCell({ children: this.parseLasMarkdown(col2), width: { size: 50, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                                    ]
+                                });
+                            });
+
+                            tableRows.unshift(new TableRow({
+                                tableHeader: true,
+                                children: [
+                                    new TableCell({ 
+                                        children: [new Paragraph({ children: [new TextRun({ text: "Column A (Situation)", ...headerFont })] })], 
+                                        width: { size: 50, type: WidthType.PERCENTAGE }
+                                    }),
+                                    new TableCell({ 
+                                        children: [new Paragraph({ children: [new TextRun({ text: "Column B (Term)", ...headerFont })] })], 
+                                        width: { size: 50, type: WidthType.PERCENTAGE }
+                                    }),
+                                ]
+                            }));
+                            
+                            sections.push(new Table({
+                                rows: tableRows,
+                                width: { size: 100, type: WidthType.PERCENTAGE },
+                            }));
+                            sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+                        }
+                    } else {
+                         sections.push(...this.parseLasMarkdown(instructions));
+                    }
+
+                     if (activity.questions && activity.questions.length > 0) {
+                        activity.questions.forEach((q, i) => {
+                            sections.push(new Paragraph({
+                                children: [
+                                    new TextRun({ text: `${i + 1}. `, ...headerFont }),
+                                    new TextRun({ text: this.safeString(q.questionText), ...contentFont })
+                                ],
+                                spacing: { before: 60 }
+                            }));
+                            if (q.options && q.options.length > 0) {
+                                q.options.forEach((opt, oi) => {
+                                    sections.push(new Paragraph({
+                                        text: `${String.fromCharCode(65+oi)}. ${this.safeString(opt)}`,
+                                        indent: { left: 720 },
+                                        style: "contentFont"
+                                    }));
+                                });
+                            } else {
+                                sections.push(new Paragraph({ text: "________________________________________", indent: { left: 720 }, style: "contentFont" }));
+                            }
+                        });
+                    }
+                });
+             }
+
+             // Reflection
+             sections.push(new Paragraph({
+                children: [new TextRun({ text: "REFLECTION", ...headerFont })],
+                spacing: { before: 240, after: 120 }
+            }));
+            sections.push(new Paragraph({
+                children: [new TextRun({ text: this.safeString(dayData.reflection), ...contentFont })],
+            }));
+            sections.push(new Paragraph({
+                children: [new TextRun({ text: "________________________________________________________________________________________________________________________________", ...contentFont })],
+                spacing: { before: 200 },
+            }));
+             sections.push(new Paragraph({
+                children: [new TextRun({ text: "________________________________________________________________________________________________________________________________", ...contentFont })],
+                spacing: { before: 200 },
+            }));
+
+        });
+
+        const doc = new Document({
+            numbering: {
+                config: [
+                    {
+                        reference: "las-list",
+                        levels: [{
+                            level: 0,
+                            format: LevelFormat.DECIMAL,
+                            text: "%1.",
+                            style: {
+                                paragraph: {
+                                    indent: { left: 720, hanging: 360 },
+                                }
+                            },
+                            run: { font: "Century Gothic", size: 28 }
+                        }],
+                    },
+                ],
+            },
+            styles: {
+                paragraphStyles: [
+                    {
+                        id: "contentFont",
+                        name: "Content Font",
+                        run: { font: "Century Gothic", size: 28 },
+                    }
+                ]
+            },
+            sections: [{
+                properties: {
+                    page: {
+                        size: { width: 12240, height: 18720 }, // 8.5 x 13 Long Bond Paper in Portrait
+                        margin: { top: 720, right: 720, bottom: 720, left: 720 }, // 0.5 inch margins
+                    }
+                },
+                children: sections
+            }]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `LAS_${this.safeString(lasForm.subject).replace(/\s/g, '_')}.docx`);
+    }
+
     public async generateQuizDocx(quiz: GeneratedQuiz): Promise<void> {
          const { quizTitle, questionsByType, activities, tableOfSpecifications } = quiz;
 
@@ -312,14 +628,18 @@ class DocxService {
                             format: LevelFormat.DECIMAL,
                             text: "%1.",
                             start: 1,
-                            indent: { left: 720, hanging: 360 },
+                            style: {
+                                paragraph: {
+                                    indent: { left: 720, hanging: 360 },
+                                }
+                            },
                         },
                     ],
                 },
             ],
         };
 
-        const sections: (Paragraph | Table | PageBreak)[] = [
+        const sections: (Paragraph | Table | Paragraph)[] = [
             new Paragraph({
                 text: this.safeString(quizTitle),
                 heading: HeadingLevel.TITLE,
@@ -334,7 +654,7 @@ class DocxService {
             sections.push(new Paragraph({ text: "Table of Specifications", heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
             const tosRows = [
                 new TableRow({
-                    children: ["Objective", "Cognitive Level", "Item Numbers"].map(text => new TableCell({ children: [new Paragraph({ text, bold: true })] })),
+                    children: ["Objective", "Cognitive Level", "Item Numbers"].map(text => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold: true })] })] })),
                     tableHeader: true,
                 }),
                 ...tableOfSpecifications.map(item => new TableRow({
@@ -360,7 +680,7 @@ class DocxService {
             const section = questionsByType[type as QuizType];
             if (section) {
                 sections.push(new Paragraph({ text: this.safeString(type), heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
-                sections.push(new Paragraph({ text: this.safeString(section.instructions), italics: true, spacing: { after: 200 } }));
+                sections.push(new Paragraph({ children: [new TextRun({ text: this.safeString(section.instructions), italics: true })], spacing: { after: 200 } }));
                 answerKeySections.push(new Paragraph({ text: this.safeString(type), heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
                 
                 let questionCounter = 1;
@@ -377,11 +697,11 @@ class DocxService {
                         q.options.forEach((opt, oi) => {
                             sections.push(new Paragraph({
                                 text: `${String.fromCharCode(65 + oi)}. ${this.safeString(opt)}`,
-                                indentation: { left: 1080 },
+                                indent: { left: 1080 },
                             }));
                         });
                     } else if (type === 'Identification' || type === 'True or False') {
-                         sections.push(new Paragraph({ text: "Answer: ____________________", indentation: { left: 1080 } }));
+                         sections.push(new Paragraph({ text: "Answer: ____________________", indent: { left: 1080 } }));
                     }
 
                     answerKeySections.push(new Paragraph({
@@ -400,7 +720,7 @@ class DocxService {
             sections.push(new Paragraph({ text: "Activities", heading: HeadingLevel.HEADING_1, spacing: { before: 400, after: 200 } }));
             activities.forEach(activity => {
                 sections.push(new Paragraph({ text: this.safeString(activity.activityName), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
-                sections.push(new Paragraph({ text: this.safeString(activity.activityInstructions), italics: true, spacing: { after: 200 } }));
+                sections.push(new Paragraph({ children: [new TextRun({ text: this.safeString(activity.activityInstructions), italics: true })], spacing: { after: 200 } }));
                 if (activity.rubric && activity.rubric.length > 0) {
                     const rubricRows = activity.rubric.map(item => new TableRow({
                         children: [
@@ -412,8 +732,8 @@ class DocxService {
                         rows: [
                              new TableRow({
                                 children: [
-                                    new TableCell({ children: [new Paragraph({ text: 'Criteria', bold: true })] }),
-                                    new TableCell({ children: [new Paragraph({ text: 'Points', bold: true })] }),
+                                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Criteria', bold: true })] })] }),
+                                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Points', bold: true })] })] }),
                                 ],
                                 tableHeader: true,
                             }),
@@ -429,7 +749,7 @@ class DocxService {
             });
         }
         
-        sections.push(new PageBreak());
+        sections.push(new Paragraph({ children: [new PageBreak()] }));
         sections.push(...answerKeySections);
 
         const doc = new Document({
@@ -447,7 +767,7 @@ class DocxService {
         htmlContent: string, 
         settings: SchoolSettings
     ): Promise<void> {
-          const isFilipino = dlpForm.language === 'Filipino';
+         const isFilipino = dlpForm.language === 'Filipino';
         const t = {
             objectives: isFilipino ? 'I. LAYUNIN' : 'I. OBJECTIVES',
             content: isFilipino ? 'II. NILALAMAN' : 'II. CONTENT',
@@ -481,6 +801,14 @@ class DocxService {
             children,
             verticalAlign: VerticalAlign.TOP,
         });
+        
+        const headerPars = [
+            { label: isFilipino ? 'Paaralan' : 'School', value: this.safeString(dlpForm.schoolName).toUpperCase() },
+            { value: this.safeString(dlpForm.quarterSelect) },
+            { label: isFilipino ? 'Guro' : 'Teacher', value: this.safeString(dlpForm.teacher) },
+            { label: isFilipino ? 'Asignatura' : 'Learning Area', value: this.safeString(dlpForm.subject).toUpperCase() },
+            { label: isFilipino ? 'Petsa ng Pagtuturo' : 'Teaching Dates', value: this.safeString(dlpForm.teachingDates) },
+        ];
     
         const doc = new Document({
             numbering: {
@@ -492,12 +820,22 @@ class DocxService {
                                 level: 0,
                                 format: LevelFormat.DECIMAL,
                                 text: "%1.",
-                                indent: { left: 720, hanging: 360 },
+                                style: {
+                                    paragraph: {
+                                        indent: { left: 720, hanging: 360 },
+                                    }
+                                },
                                 run: { font: "Times New Roman", size: 22 },
                             },
                         ],
                     },
                 ],
+            },
+            styles: {
+                paragraphStyles: [
+                    { id: 'header-label', name: 'Header Label', run: { font: 'Arial', size: 16 }, paragraph: { spacing: { after: 0 } } },
+                    { id: 'header-value', name: 'Header Value', run: { font: 'Arial', size: 16, bold: true }, paragraph: { spacing: { after: 40 } } }
+                ]
             },
             sections: [{
                 properties: {
@@ -521,21 +859,20 @@ class DocxService {
                                         verticalAlign: VerticalAlign.CENTER
                                     }),
                                     new TableCell({
-                                        children: [
-                                            new Paragraph({ text: isFilipino ? 'Paaralan' : 'School', style: 'header-label' }),
-                                            new Paragraph({ text: this.safeString(dlpForm.schoolName).toUpperCase(), style: 'header-value' }),
-                                            new Paragraph({ text: this.safeString(dlpForm.quarterSelect), style: 'header-value' }),
-                                            new Paragraph({ text: `${isFilipino ? 'Guro' : 'Teacher'}: ${this.safeString(dlpForm.teacher)}`, style: 'header-value' }),
-                                            new Paragraph({ text: `${isFilipino ? 'Asignatura' : 'Learning Area'}: ${this.safeString(dlpForm.subject).toUpperCase()}`, style: 'header-value' }),
-                                            new Paragraph({ text: `${isFilipino ? 'Petsa ng Pagtuturo' : 'Teaching Dates'}: ${this.safeString(dlpForm.teachingDates)}`, style: 'header-value' }),
-                                        ].map(p => new Paragraph({ ...p.options, alignment: AlignmentType.LEFT })),
+                                        children: headerPars.map(p => {
+                                            if (p.label) {
+                                                return new Paragraph({ children: [new TextRun({ text: `${p.label}: `, size: 16 }), new TextRun({ text: p.value, bold: true, size: 16 })], alignment: AlignmentType.LEFT });
+                                            } else {
+                                                return new Paragraph({ children: [new TextRun({ text: p.value, bold: true, size: 16 })], alignment: AlignmentType.LEFT });
+                                            }
+                                        }),
                                         width: { size: 55, type: WidthType.PERCENTAGE }
                                     }),
                                     new TableCell({
                                         children: [
-                                            new Paragraph({ text: isFilipino ? 'DETALYADONG BANGHAY-ARALIN SA' : 'DAILY LESSON PLAN IN', alignment: AlignmentType.CENTER, bold: true }),
-                                            new Paragraph({ text: `${this.safeString(dlpForm.subject).toUpperCase()} ${this.safeString(dlpForm.gradeLevel)}`, alignment: AlignmentType.CENTER, bold: true }),
-                                            new Paragraph({ text: (isFilipino ? 'ISKEDYUL NG KLASE' : 'CLASS SCHEDULE'), alignment: AlignmentType.CENTER, bold: true, spacing: {before: 100} }),
+                                            new Paragraph({ children: [new TextRun({ text: isFilipino ? 'DETALYADONG BANGHAY-ARALIN SA' : 'DAILY LESSON PLAN IN', bold: true })], alignment: AlignmentType.CENTER }),
+                                            new Paragraph({ children: [new TextRun({ text: `${this.safeString(dlpForm.subject).toUpperCase()} ${this.safeString(dlpForm.gradeLevel)}`, bold: true })], alignment: AlignmentType.CENTER }),
+                                            new Paragraph({ children: [new TextRun({ text: (isFilipino ? 'ISKEDYUL NG KLASE' : 'CLASS SCHEDULE'), bold: true })], alignment: AlignmentType.CENTER, spacing: {before: 100} }),
                                             ...this.safeString(dlpForm.classSchedule).split('\n').map((line: string) => new Paragraph({ text: line, alignment: AlignmentType.CENTER }))
                                         ],
                                         width: { size: 30, type: WidthType.PERCENTAGE },
@@ -557,11 +894,10 @@ class DocxService {
                             new TableRow({ children: [createHeaderCell(t.procedure), new TableCell({
                                 children: [ new Table({
                                     width: { size: 100, type: WidthType.PERCENTAGE },
-                                    columnWidths: [25, 45, 30],
                                     rows: [
-                                        new TableRow({ children: [ new TableCell({ children: [new Paragraph({ text: (isFilipino ? 'Pamamaraan' : 'Procedure'), bold: true })] }), new TableCell({ children: [new Paragraph({ text: (isFilipino ? 'Gawain ng Guro/Mag-aaral' : 'Teacher/Student Activity'), bold: true })] }), new TableCell({ children: [new Paragraph({ text: (isFilipino ? 'Mga Kaugnay na PPST Indicator' : 'Aligned PPST Indicators'), bold: true })] })] }),
+                                        new TableRow({ children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: (isFilipino ? 'Pamamaraan' : 'Procedure'), bold: true })] })], width: { size: 25, type: WidthType.PERCENTAGE } }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: (isFilipino ? 'Gawain ng Guro/Mag-aaral' : 'Teacher/Student Activity'), bold: true })] })], width: { size: 45, type: WidthType.PERCENTAGE } }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: (isFilipino ? 'Mga Kaugnay na PPST Indicator' : 'Aligned PPST Indicators'), bold: true })] })], width: { size: 30, type: WidthType.PERCENTAGE } })] }),
                                         ...dlpContent.procedures.map(proc => new TableRow({
-                                            children: [ new TableCell({ children: [new Paragraph({ text: this.safeString(proc.title), bold: true })] }), new TableCell({ children: this.parseMarkdownToParagraphs(this.safeString(proc.content)) }), new TableCell({ children: [new Paragraph({ text: this.safeString(proc.ppst), italics: true })] })],
+                                            children: [ new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: this.safeString(proc.title), bold: true })] })], width: { size: 25, type: WidthType.PERCENTAGE } }), new TableCell({ children: this.parseMarkdownToParagraphs(this.safeString(proc.content)), width: { size: 45, type: WidthType.PERCENTAGE } }), new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: this.safeString(proc.ppst), italics: true })] })], width: { size: 30, type: WidthType.PERCENTAGE } })],
                                         }))
                                     ],
                                 })],
@@ -571,7 +907,7 @@ class DocxService {
                         ],
                     }),
     
-                    new PageBreak(),
+                    new Paragraph({ children: [new PageBreak()] }),
     
                     // Answer Key
                     new Paragraph({ text: (isFilipino ? 'Susi sa Pagwawasto' : 'Answer Key (For Evaluating Learning)'), heading: HeadingLevel.HEADING_2 }),
@@ -589,14 +925,13 @@ class DocxService {
         dllContent: DllContent,
         settings: SchoolSettings
     ): Promise<void> {
-        // Corrected page size for 8.5" x 13" (Long Bond Paper) in landscape
-        const pageHeight = 18720;
+         const pageHeight = 18720;
         const pageWidth = 12240;
 
         const isFilipino = dllForm.language === 'Filipino';
         const days = isFilipino ? ['Lunes', 'Martes', 'Miyerkules', 'Huwebes', 'Biyernes'] : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         
-        const boldCentered = { bold: true, alignment: AlignmentType.CENTER };
+        const boldCentered = { children: [], alignment: AlignmentType.CENTER };
 
         const headerTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
@@ -624,11 +959,11 @@ class DocxService {
         
         // Add days row
         mainTableRows.push(new TableRow({
-            children: [new TableCell({ children: [] }), ...days.map(day => new TableCell({ children: [new Paragraph({ text: day, ...boldCentered })] }))]
+            children: [new TableCell({ children: [] }), ...days.map(day => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: day, bold: true })], alignment: AlignmentType.CENTER })] }))]
         }));
 
         // Add Objectives
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "I. OBJECTIVES", bold: true })], columnSpan: 6 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "I. OBJECTIVES", bold: true })] })], columnSpan: 6 })]}));
         mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph("A. Content Standard")] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.contentStandard))], columnSpan: 5 })]}));
         mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph("B. Performance Standard")] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.performanceStandard))], columnSpan: 5 })]}));
         mainTableRows.push(new TableRow({
@@ -643,13 +978,13 @@ class DocxService {
         }));
         
         // Add Content
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "II. CONTENT", bold: true })] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.content))], columnSpan: 5 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "II. CONTENT", bold: true })] })] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.content))], columnSpan: 5 })]}));
 
         // Add Learning Resources
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "III. LEARNING RESOURCES", bold: true })], columnSpan: 6 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "III. LEARNING RESOURCES", bold: true })] })], columnSpan: 6 })]}));
 
         // Add Procedures
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "IV. PROCEDURES", bold: true })], columnSpan: 6 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "IV. PROCEDURES", bold: true })] })], columnSpan: 6 })]}));
         dllContent.procedures.forEach(proc => {
             mainTableRows.push(new TableRow({
                 children: [
@@ -664,24 +999,22 @@ class DocxService {
         });
         
         // Add Remarks & Reflection
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "V. REMARKS", bold: true })] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.remarks))], columnSpan: 5 })]}));
-        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ text: "VI. REFLECTION", bold: true })], columnSpan: 6 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "V. REMARKS", bold: true })] })] }), new TableCell({ children: [new Paragraph(this.safeString(dllContent.remarks))], columnSpan: 5 })]}));
+        mainTableRows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "VI. REFLECTION", bold: true })] })], columnSpan: 6 })]}));
 
         const mainTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            columnWidths: [15, 17, 17, 17, 17, 17],
             rows: mainTableRows
         });
         
         const signatoriesTable = new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
-            columnWidths: [33, 34, 33],
             rows: [
                  new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph("Prepared by:")], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
-                        new TableCell({ children: [new Paragraph("Checked by:")], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
-                        new TableCell({ children: [new Paragraph("Approved by:")], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph("Prepared by:")], width: {size: 33, type: WidthType.PERCENTAGE}, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph("Checked by:")], width: {size: 34, type: WidthType.PERCENTAGE}, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph("Approved by:")], width: {size: 33, type: WidthType.PERCENTAGE}, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
                     ]
                  }),
                  new TableRow({
@@ -693,9 +1026,9 @@ class DocxService {
                  }),
                  new TableRow({
                     children: [
-                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.preparedByName), ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
-                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.checkedByName), ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
-                        new TableCell({ children: [new Paragraph({ text: this.safeString(dllForm.approvedByName), ...boldCentered })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: this.safeString(dllForm.preparedByName), bold: true })], alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: this.safeString(dllForm.checkedByName), bold: true })], alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: this.safeString(dllForm.approvedByName), bold: true })], alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }} }),
                     ]
                  }),
                  new TableRow({
@@ -713,13 +1046,12 @@ class DocxService {
             sections: [{
                 properties: {
                     page: {
-                        size: { width: pageHeight, height: pageWidth },
-                        orientation: PageOrientation.LANDSCAPE,
+                        size: { width: pageHeight, height: pageWidth, orientation: PageOrientation.LANDSCAPE },
                         margin: { top: 720, right: 720, bottom: 720, left: 720 },
                     },
                 },
                 children: [
-                    new Paragraph({ text: "DAILY LESSON LOG", ...boldCentered, spacing: { after: 200 } }),
+                    new Paragraph({ children: [new TextRun({ text: "DAILY LESSON LOG", bold: true })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
                     headerTable,
                     mainTable,
                     new Paragraph({ spacing: { after: 400 } }),
@@ -732,357 +1064,335 @@ class DocxService {
         this.downloadBlob(blob, `DLL_${this.safeString(dllForm.subject).replace(/\s/g, '_')}.docx`);
     }
 
-    public async generateLasDocx(
-        lasForm: any,
-        lasContent: LearningActivitySheet,
+    public async generateExamDocx(
+        exam: GeneratedExam,
         settings: SchoolSettings
     ): Promise<void> {
-        const sections: (Paragraph | Table | PageBreak)[] = [];
-        const baseFont = "Century Gothic";
-        const headerFontSize = 22; // 11pt for header info to fit
-        const contentFontSize = 24; // 12pt for body content
-        
-        const headerFont = { font: baseFont, size: headerFontSize, bold: true };
-        const fieldFont = { font: baseFont, size: headerFontSize };
-        const contentFont = { font: baseFont, size: contentFontSize };
-        const titleFont = { font: baseFont, size: 32, bold: true }; // 16pt
+         const sections: (Paragraph | Table | Paragraph)[] = [];
 
-        const days = lasContent?.days || [];
+        // Header
+        const secondLogoRun = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60) || new TextRun("");
+        const schoolLogoRun = this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 60, 60) || new TextRun("");
 
-        days.forEach((dayData, index) => {
-            if (index > 0) {
-                sections.push(new PageBreak());
-            }
+        const headerTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ children: [secondLogoRun, new TextRun("  "), schoolLogoRun], alignment: AlignmentType.LEFT })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }, width: { size: 20, type: WidthType.PERCENTAGE } }),
+                        new TableCell({ children: [new Paragraph({ text: `Republic of the Philippines`, alignment: AlignmentType.CENTER }), new Paragraph({ children: [new TextRun({ text: `Department of Education`, bold: true })], alignment: AlignmentType.CENTER }), new Paragraph({ children: [new TextRun({ text: settings.schoolName.toUpperCase(), bold: true })], alignment: AlignmentType.CENTER })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }, width: { size: 60, type: WidthType.PERCENTAGE } }),
+                         new TableCell({ children: [], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }, width: { size: 20, type: WidthType.PERCENTAGE } }),
+                    ]
+                })
+            ]
+        });
+        sections.push(headerTable);
+        sections.push(new Paragraph({ text: exam.title.toUpperCase(), heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER, spacing: { before: 200, after: 200 } }));
+        sections.push(new Paragraph({ text: `Subject: ${exam.subject} | Grade: ${exam.gradeLevel} | Quarter: ${exam.quarter}`, alignment: AlignmentType.CENTER, spacing: { after: 200 } }));
+        sections.push(new Paragraph({ text: `Name: __________________________________  Score: ______`, spacing: { after: 400 } }));
 
-            // --- HEADER TABLE STRUCTURE ---
-            
-            // 1. TOP ROW: Logo | Center Text | Right Info Box
-            const topHeaderRow = new TableRow({
+        // Questions
+        sections.push(new Paragraph({ children: [new TextRun({ text: "TEST I. MULTIPLE CHOICE", bold: true })] }));
+        sections.push(new Paragraph({ children: [new TextRun({ text: "Directions: Read each question carefully and circle the letter of the correct answer.", italics: true })], spacing: { after: 200 } }));
+
+        exam.questions.forEach((q, i) => {
+             sections.push(new Paragraph({
                 children: [
-                    // Left: Logos
-                    new TableCell({
-                        width: { size: 20, type: WidthType.PERCENTAGE },
-                        children: [
-                            new Paragraph({
-                                children: [
-                                    this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60) || new TextRun(""),
-                                    new TextRun("  "),
-                                    this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 60, 60) || new TextRun(""),
-                                ],
-                                alignment: AlignmentType.LEFT,
-                            })
-                        ],
-                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
-                    }),
-                    // Center: Dynamic Learning Program
-                    new TableCell({
-                        width: { size: 40, type: WidthType.PERCENTAGE },
-                        verticalAlign: VerticalAlign.CENTER,
-                        children: [
-                            new Paragraph({
-                                children: [new TextRun({ text: "Dynamic Learning Program", font: baseFont, size: 28, bold: true })],
-                                alignment: AlignmentType.CENTER,
-                            })
-                        ],
-                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
-                    }),
-                    // Right: Info Box (SY, Subject, LAS No.)
-                    new TableCell({
-                        width: { size: 40, type: WidthType.PERCENTAGE },
-                        children: [
-                            new Table({
-                                width: { size: 100, type: WidthType.PERCENTAGE },
-                                rows: [
-                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `S.Y. ${this.safeString(settings.schoolYear)}`, ...headerFont })], alignment: AlignmentType.CENTER })], borders: { bottom: { style: BorderStyle.SINGLE, size: 6 } } })] }),
-                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Subject: ", ...headerFont }), new TextRun({ text: this.safeString(lasForm.subject), ...fieldFont })] })], borders: { bottom: { style: BorderStyle.SINGLE, size: 6 } } })] }),
-                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Q1 - LAS - _________", ...headerFont })] })] })] }),
-                                ]
-                            })
-                        ],
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } }
-                    })
-                ]
-            });
-
-            const headerTable = new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                rows: [topHeaderRow],
-                borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }
-            });
-
-            sections.push(headerTable);
-            
-            // 2. Title
-            sections.push(new Paragraph({
-                children: [new TextRun({ text: "LEARNING ACTIVITY SHEET", ...titleFont })],
-                alignment: AlignmentType.CENTER,
-                spacing: { before: 120, after: 120 }
+                    new TextRun({ text: `${i + 1}. ${q.questionText}`, bold: true })
+                ],
+                spacing: { before: 100 }
             }));
-
-            // 3. Student Info Grid
-            const studentInfoTable = new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                rows: [
-                    new TableRow({
-                        children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name: _______________________________________", ...fieldFont })] })], width: { size: 70, type: WidthType.PERCENTAGE } }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score: ________", ...fieldFont })] })], width: { size: 30, type: WidthType.PERCENTAGE } }),
-                        ]
-                    }),
-                    new TableRow({
-                        children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Grade & Section: ${this.safeString(lasForm.gradeLevel)} - _______________`, ...fieldFont })] })] }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date: ________", ...fieldFont })] })] }),
-                        ]
-                    })
-                ]
-            });
-            sections.push(studentInfoTable);
-
-            // 4. Type of Activity
-            const activityTypeMap = {
-                "Concept Notes": "Concept Notes",
-                "Skills: Exercise / Drill": "Skills: Exercise / Drill",
-                "Performance Task": "Performance Task",
-                "Illustration": "Illustration",
-                "Formal Theme": "Formal Theme",
-                "Informal Theme": "Informal Theme",
-                "Others": "Others"
-            };
             
-            // Helper for checkboxes
-            const cb = (label: string) => {
-                const isChecked = this.safeString(lasForm.activityType).toLowerCase().includes(label.toLowerCase().split(':')[0]); // Fuzzy match start
-                return isChecked ? `\u2611 ${label}` : `\u2610 ${label}`;
-            };
-
-            const activityTypeTable = new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                rows: [
-                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Type of Activity: (Check or choose from below.)", ...headerFont })] })], columnSpan: 4, borders: { bottom: { style: BorderStyle.NONE } } })] }),
-                    new TableRow({
-                        children: [
-                            new TableCell({ children: [new Paragraph({ text: cb("Concept Notes"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Performance Task"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Formal Theme"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Others: ________"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE } } }),
-                        ]
-                    }),
-                    new TableRow({
-                        children: [
-                            new TableCell({ children: [new Paragraph({ text: cb("Skills: Exercise / Drill"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Illustration"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Informal Theme"), ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: "", ...fieldFont })], borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE } } }),
-                        ]
-                    })
-                ]
-            });
-            sections.push(activityTypeTable);
-
-            // 5. Details Table (Title, Target, Ref)
-            const detailsTable = new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                rows: [
-                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Activity Title: ", ...headerFont }), new TextRun({ text: this.safeString(dayData.activityTitle), ...fieldFont })] })] })] }),
-                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Learning Target: ", ...headerFont }), new TextRun({ text: this.safeString(dayData.learningTarget), ...fieldFont })] })] })] }),
-                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "References: ", ...headerFont }), new TextRun({ text: "(Author, Title, Pages) " + this.safeString(dayData.references), ...fieldFont })] })] })] }),
-                ]
-            });
-            sections.push(detailsTable);
-            
-            // Spacer
-            sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
-
-            // --- CONTENT ---
-            // Concept Notes
-            if (dayData.conceptNotes && Array.isArray(dayData.conceptNotes)) {
-                dayData.conceptNotes.forEach(note => {
+            if (q.options) {
+                q.options.forEach((opt, oi) => {
                     sections.push(new Paragraph({
-                        children: [new TextRun({ text: this.safeString(note.title).toUpperCase(), ...headerFont })],
-                        spacing: { before: 120, after: 120 }
+                        text: `${String.fromCharCode(65+oi)}. ${opt}`,
+                        indent: { left: 720 }
                     }));
-                    sections.push(...this.parseLasMarkdown(this.safeString(note.content)));
                 });
             }
+        });
 
-            // Activities
-             if (dayData.activities && Array.isArray(dayData.activities)) {
-                dayData.activities.forEach(activity => {
-                    sections.push(new Paragraph({
-                        children: [new TextRun({ text: this.safeString(activity.title).toUpperCase(), ...headerFont })],
-                        spacing: { before: 240, after: 120 }
-                    }));
+        // TOS (New Page)
+        sections.push(new Paragraph({ children: [new PageBreak()] }));
+        sections.push(new Paragraph({ text: "TABLE OF SPECIFICATIONS", heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER }));
+        
+        const tosHeaderRow = new TableRow({
+            children: ["Competencies", "Days", "%", "No. Items", "Placement", "R", "U", "Ap", "An", "E", "C"].map(t => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t, bold: true, size: 16 })] })], shading: { fill: "E7E6E6" } })),
+            tableHeader: true
+        });
 
-                    const instructions = this.safeString(activity.instructions);
-                    
-                    if (instructions.includes('||')) {
-                        const lines = instructions.split('\n');
-                        const directionsLines = lines.filter(l => !l.includes('||'));
-                        const tableLines = lines.filter(l => l.includes('||'));
+        const tosRows = exam.tableOfSpecifications.map(row => new TableRow({
+            children: [
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.objective, size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(row.daysTaught), size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.percentage, size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(row.numItems), size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.itemPlacement, size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.remembering, size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.understanding, size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.applying, size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.analyzing, size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.evaluating, size: 16 })] })] }),
+                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: row.creating, size: 16 })] })] }),
+            ]
+        }));
 
-                        if (directionsLines.length > 0) {
-                            sections.push(new Paragraph({
-                                children: [
-                                    new TextRun({ text: "Directions: ", ...headerFont }),
-                                    new TextRun({ text: directionsLines.join(' '), ...contentFont })
-                                ],
-                                spacing: { after: 120 }
-                            }));
-                        }
-
-                        if (tableLines.length > 0) {
-                             const tableRows = tableLines.map(line => {
-                                const parts = line.split('||');
-                                const col1 = this.safeString(parts[0] || "").trim();
-                                const col2 = this.safeString(parts[1] || "").trim();
-                                return new TableRow({
-                                    children: [
-                                        new TableCell({ children: this.parseLasMarkdown(col1), width: { size: 50, type: WidthType.PERCENTAGE }, padding: { top: 100, bottom: 100, left: 100, right: 100 } }),
-                                        new TableCell({ children: this.parseLasMarkdown(col2), width: { size: 50, type: WidthType.PERCENTAGE }, padding: { top: 100, bottom: 100, left: 100, right: 100 } }),
-                                    ]
-                                });
-                            });
-
-                            tableRows.unshift(new TableRow({
-                                tableHeader: true,
-                                children: [
-                                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Column A (Situation)", ...headerFont })] })], shading: { fill: "FFFFFF", type: ShadingType.CLEAR, color: "auto" } }),
-                                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Column B (Term)", ...headerFont })] })], shading: { fill: "FFFFFF", type: ShadingType.CLEAR, color: "auto" } }),
-                                ]
-                            }));
-                            
-                            sections.push(new Table({
-                                rows: tableRows,
-                                width: { size: 100, type: WidthType.PERCENTAGE },
-                            }));
-                            sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
-                        }
-                    } else {
-                         sections.push(...this.parseLasMarkdown(instructions));
-                    }
-
-                     if (activity.questions && activity.questions.length > 0) {
-                        activity.questions.forEach((q, i) => {
-                            sections.push(new Paragraph({
-                                children: [
-                                    new TextRun({ text: `${i + 1}. `, ...headerFont }),
-                                    new TextRun({ text: this.safeString(q.questionText), ...contentFont })
-                                ],
-                                spacing: { before: 60 }
-                            }));
-                            if (q.options && q.options.length > 0) {
-                                q.options.forEach((opt, oi) => {
-                                    sections.push(new Paragraph({
-                                        text: `${String.fromCharCode(65+oi)}. ${this.safeString(opt)}`,
-                                        indentation: { left: 720 },
-                                        run: contentFont
-                                    }));
-                                });
-                            } else {
-                                sections.push(new Paragraph({ text: "________________________________________", indentation: { left: 720 }, run: contentFont }));
-                            }
-                        });
-                    }
-                });
-             }
-
-             // Reflection
-             sections.push(new Paragraph({
-                children: [new TextRun({ text: "REFLECTION", ...headerFont })],
-                spacing: { before: 240, after: 120 }
-            }));
-            sections.push(new Paragraph({
-                text: this.safeString(dayData.reflection),
-                run: contentFont
-            }));
-            sections.push(new Paragraph({
-                text: "________________________________________________________________________________________________________________________________",
-                spacing: { before: 200 },
-                run: contentFont
-            }));
-             sections.push(new Paragraph({
-                text: "________________________________________________________________________________________________________________________________",
-                spacing: { before: 200 },
-                run: contentFont
-            }));
-
+        sections.push(new Table({
+            rows: [tosHeaderRow, ...tosRows],
+            width: { size: 100, type: WidthType.PERCENTAGE }
+        }));
+        
+        // Key (New Page)
+        sections.push(new Paragraph({ children: [new PageBreak()] }));
+        sections.push(new Paragraph({ text: "ANSWER KEY", heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER }));
+        exam.questions.forEach((q, i) => {
+            sections.push(new Paragraph({ text: `${i+1}. ${q.correctAnswer}` }));
         });
 
         const doc = new Document({
-            numbering: {
-                config: [
-                    {
-                        reference: "las-list",
-                        levels: [{
-                            level: 0,
-                            format: LevelFormat.DECIMAL,
-                            text: "%1.",
-                            indent: { left: 720, hanging: 360 },
-                            run: { font: "Century Gothic", size: 24 }
-                        }],
-                    },
-                ],
-            },
+            sections: [{ children: sections }]
+        });
+        
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `Exam_${exam.subject.replace(/\s/g, '_')}_Q${exam.quarter}.docx`);
+    }
+    
+    public async generatePickedStudentsDocx(data: PickedStudentsDocxData): Promise<void> {
+         const doc = new Document({
+            sections: [{
+                children: [
+                    new Paragraph({ text: `Recitation List: ${data.topic}`, heading: HeadingLevel.TITLE }),
+                    new Paragraph({ text: data.sectionText }),
+                    new Paragraph({ text: `Date: ${new Date().toLocaleDateString()}` }),
+                    ...data.pickedStudents.map((s, i) => new Paragraph({ text: `${i + 1}. ${s.firstName} ${s.lastName}` }))
+                ]
+            }]
+        });
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `Recitation_List_${data.topic}.docx`);
+    }
+    
+    public async generateGroupsDocx(data: GroupsDocxData): Promise<void> {
+        const sections: (Paragraph)[] = [
+            new Paragraph({ text: `Group Assignments: ${data.topic}`, heading: HeadingLevel.TITLE }),
+            new Paragraph({ text: data.sectionText }),
+            new Paragraph({ text: `Date: ${new Date().toLocaleDateString()}` }),
+        ];
+        
+        data.groups.forEach((group, i) => {
+            sections.push(new Paragraph({ text: `Group ${i + 1}`, heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }));
+            group.forEach(s => sections.push(new Paragraph({ text: `${s.firstName} ${s.lastName}`, bullet: { level: 0 } })));
+        });
+
+        const doc = new Document({ sections: [{ children: sections }] });
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `Groups_${data.topic}.docx`);
+    }
+    
+    public async generateHonorsListDocx(data: HonorsListDocxData): Promise<void> {
+         const sections: (Paragraph | Table)[] = [
+            new Paragraph({ text: "HONOR ROLL", heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }),
+            new Paragraph({ text: `School Year: ${data.settings.schoolYear}`, alignment: AlignmentType.CENTER }),
+            new Paragraph({ text: `Class: ${data.selectedSectionText}`, alignment: AlignmentType.CENTER, spacing: { after: 200 } }),
+        ];
+
+        const addCategory = (title: string, students: any[]) => {
+            if (students.length > 0) {
+                sections.push(new Paragraph({ text: title, heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+                const rows = students.map((s, i) => new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph(String(i + 1))] }),
+                        new TableCell({ children: [new Paragraph(`${s.student.lastName}, ${s.student.firstName}`)] }),
+                        new TableCell({ children: [new Paragraph(s.generalAvg.toFixed(0))] }),
+                    ]
+                }));
+                 sections.push(new Table({
+                    rows: [
+                        new TableRow({ children: ["Rank", "Name", "Average"].map(t => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t, bold: true })] })] })), tableHeader: true }),
+                        ...rows
+                    ],
+                    width: { size: 100, type: WidthType.PERCENTAGE }
+                }));
+            }
+        };
+
+        addCategory("WITH HIGHEST HONORS (98-100)", data.honorStudents.highest);
+        addCategory("WITH HIGH HONORS (95-97)", data.honorStudents.high);
+        addCategory("WITH HONORS (90-94)", data.honorStudents.regular);
+
+        const doc = new Document({ sections: [{ children: sections }] });
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `Honor_Roll_${data.selectedSectionText}.docx`);
+    }
+    
+    public async generateStudentProfileDocx(data: StudentProfileDocxData): Promise<void> {
+         const sections: (Paragraph | Table | ImageRun)[] = [];
+         // Header
+         sections.push(new Paragraph({ text: data.settings.schoolName.toUpperCase(), heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }));
+         sections.push(new Paragraph({ text: "STUDENT PROFILE", heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER }));
+         
+         sections.push(new Paragraph({ children: [new TextRun({ text: `Name: ${data.student.firstName} ${data.student.lastName}`, bold: true })], spacing: { before: 200 } }));
+         sections.push(new Paragraph({ text: `LRN: ${data.student.lrn || 'N/A'}   |   Grade/Section: ${data.student.gradeLevel} - ${data.student.section}` }));
+
+         // Grades
+         sections.push(new Paragraph({ text: "Academic Record", heading: HeadingLevel.HEADING_3, spacing: { before: 200 } }));
+         const gradeRows = data.academicSummary.map(sub => new TableRow({
+             children: [
+                 new TableCell({ children: [new Paragraph(sub.subject)] }),
+                 ...sub.grades.map(g => new TableCell({ children: [new Paragraph(g !== null ? String(g) : '-')],  })),
+             ]
+         }));
+         sections.push(new Table({
+             rows: [
+                 new TableRow({ children: ["Subject", "Q1", "Q2", "Q3", "Q4"].map(t => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: t, bold: true })] })] })), tableHeader: true }),
+                 ...gradeRows
+             ],
+             width: { size: 100, type: WidthType.PERCENTAGE }
+         }));
+         
+         // Anecdotes
+         if (data.recentAnecdotes.length > 0) {
+             sections.push(new Paragraph({ text: "Recent Observations", heading: HeadingLevel.HEADING_3, spacing: { before: 200 } }));
+             data.recentAnecdotes.forEach(a => {
+                 sections.push(new Paragraph({ children: [new TextRun({ text: new Date(a.date).toLocaleDateString(), bold: true })] }));
+                 sections.push(new Paragraph({ children: [new TextRun({ text: a.observation, italics: true })], spacing: { after: 100 } }));
+             });
+         }
+
+         const doc = new Document({ sections: [{ children: sections }] });
+         const blob = await Packer.toBlob(doc);
+         this.downloadBlob(blob, `Profile_${data.student.lastName}.docx`);
+    }
+
+    public async generateAttendanceDocx(
+        students: Student[], 
+        attendance: Attendance[], 
+        currentDate: Date, 
+        settings: SchoolSettings
+    ): Promise<void> {
+        // Simplified implementation similar to generateAttendanceXlsx but for Docx
+         const doc = new Document({
+            sections: [{
+                children: [new Paragraph("Attendance Report (See Excel export for detailed view)")]
+            }]
+        });
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `Attendance_Report.docx`);
+    }
+
+    public async generateSF2Docx(
+        students: Student[],
+        attendance: Attendance[],
+        settings: SchoolSettings,
+        currentDate: Date
+    ): Promise<void> {
+         const doc = new Document({
+            sections: [{
+                properties: { page: { size: { width: 12240, height: 15840 } } }, // Legal sizeish
+                children: [new Paragraph("School Form 2 (SF2) - Automated Generation Pending Update")]
+            }]
+        });
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `SF2_${currentDate.getMonth()}.docx`);
+    }
+
+    public async generateMapehRecordDocx(data: MapehRecordDocxData): Promise<void> {
+          const doc = new Document({
+            sections: [{
+                children: [new Paragraph("MAPEH Record")]
+            }]
+        });
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `MAPEH_Record.docx`);
+    }
+    
+    public async generateSummaryOfGradesDocx(data: SummaryOfGradesDocxData): Promise<void> {
+         const doc = new Document({
+            sections: [{
+                children: [new Paragraph("Summary of Grades")]
+            }]
+        });
+        const blob = await Packer.toBlob(doc);
+        this.downloadBlob(blob, `Summary_of_Grades.docx`);
+    }
+    
+    public async generateEClassRecordDocx(data: EClassRecordDocxData): Promise<void> {
+        const { allStudents, settings, subject, quarter, selectedSectionText, recordSettings, studentRecords, calculationResults } = data;
+
+        const rows: TableRow[] = [];
+
+        // Header Rows
+        const headerRow = new TableRow({
+            children: [
+                new TableCell({ children: [new Paragraph("Learner's Names")], rowSpan: 2 }),
+                new TableCell({ children: [new Paragraph(`Written Works (${recordSettings.wwPercentage * 100}%)`)], columnSpan: 3 }), // Simplified
+                new TableCell({ children: [new Paragraph(`Performance Tasks (${recordSettings.ptPercentage * 100}%)`)], columnSpan: 3 }), // Simplified
+                new TableCell({ children: [new Paragraph(`Quarterly Assessment (${recordSettings.qaPercentage * 100}%)`)], columnSpan: 3 }), // Simplified
+                new TableCell({ children: [new Paragraph("Initial Grade")], rowSpan: 2 }),
+                new TableCell({ children: [new Paragraph("Quarterly Grade")], rowSpan: 2 }),
+            ]
+        });
+        rows.push(headerRow);
+        
+        const subHeaderRow = new TableRow({
+            children: [
+                new TableCell({ children: [new Paragraph("Total")] }), new TableCell({ children: [new Paragraph("PS")] }), new TableCell({ children: [new Paragraph("WS")] }),
+                new TableCell({ children: [new Paragraph("Total")] }), new TableCell({ children: [new Paragraph("PS")] }), new TableCell({ children: [new Paragraph("WS")] }),
+                new TableCell({ children: [new Paragraph("Score")] }), new TableCell({ children: [new Paragraph("PS")] }), new TableCell({ children: [new Paragraph("WS")] }),
+            ]
+        });
+        rows.push(subHeaderRow);
+
+        const addStudentRows = (studentList: Student[]) => {
+            studentList.forEach(student => {
+                const calcs = calculationResults.get(student.id) || {};
+                rows.push(new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph(`${student.lastName}, ${student.firstName}`)] }),
+                        new TableCell({ children: [new Paragraph(String(calcs.wwTotal || 0))] }), new TableCell({ children: [new Paragraph(calcs.wwPs?.toFixed(2) || "")] }), new TableCell({ children: [new Paragraph(calcs.wwWs?.toFixed(2) || "")] }),
+                        new TableCell({ children: [new Paragraph(String(calcs.ptTotal || 0))] }), new TableCell({ children: [new Paragraph(calcs.ptPs?.toFixed(2) || "")] }), new TableCell({ children: [new Paragraph(calcs.ptWs?.toFixed(2) || "")] }),
+                        new TableCell({ children: [new Paragraph(String(data.studentRecords.find(r => r.studentId === student.id)?.quarterlyAssessment || 0))] }), new TableCell({ children: [new Paragraph(calcs.qaPs?.toFixed(2) || "")] }), new TableCell({ children: [new Paragraph(calcs.qaWs?.toFixed(2) || "")] }),
+                        new TableCell({ children: [new Paragraph(calcs.initialGrade?.toFixed(2) || "")] }),
+                        new TableCell({ children: [new Paragraph(String(calcs.quarterlyGrade || ""))] }),
+                    ]
+                }));
+            });
+        };
+
+        if (allStudents.males.length > 0) {
+            rows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "MALE", bold: true })] })], columnSpan: 12 })] }));
+            addStudentRows(allStudents.males);
+        }
+        if (allStudents.females.length > 0) {
+             rows.push(new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "FEMALE", bold: true })] })], columnSpan: 12 })] }));
+            addStudentRows(allStudents.females);
+        }
+
+        const table = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: rows
+        });
+
+        const doc = new Document({
             sections: [{
                 properties: {
                     page: {
-                        size: { width: 12240, height: 18720 }, // 8.5 x 13 Long Bond Paper in Portrait
-                        margin: { top: 720, right: 720, bottom: 720, left: 720 }, // 0.5 inch margins
+                         size: { width: 12240, height: 15840, orientation: PageOrientation.LANDSCAPE } // Legal Landscape approx
                     }
                 },
-                children: sections
+                children: [
+                    new Paragraph({ text: `E-Class Record: ${subject} - Q${quarter}`, heading: HeadingLevel.TITLE }),
+                    new Paragraph({ text: `Class: ${selectedSectionText}` }),
+                    new Paragraph({ text: `Teacher: ${settings.teacherName}`, spacing: { after: 200 } }),
+                    table
+                ]
             }]
         });
 
         const blob = await Packer.toBlob(doc);
-        this.downloadBlob(blob, `LAS_${this.safeString(lasForm.subject).replace(/\s/g, '_')}.docx`);
+        this.downloadBlob(blob, `EClassRecord_${subject}_Q${quarter}.docx`);
     }
-
-    public async generateExamDocx(exam: GeneratedExam, settings: SchoolSettings): Promise<void> {
-        // Stub for generateExamDocx
-    }
-
-    public async generateAttendanceDocx(students: Student[], attendance: Attendance[], currentDate: Date, schoolSettings: SchoolSettings): Promise<void> {
-        // Stub for generateAttendanceDocx
-    }
-    
-    public async generateSummaryOfGradesDocx(data: SummaryOfGradesDocxData): Promise<void> {
-       // Stub for generateSummaryOfGradesDocx
-    }
-    
-    public async generateEClassRecordDocx(data: EClassRecordDocxData): Promise<void> {
-        // Stub for generateEClassRecordDocx
-    }
-
-    public async generateMapehRecordDocx(data: MapehRecordDocxData): Promise<void> {
-        // Stub for generateMapehRecordDocx
-    }
-
-    public async generateCertificateDocx(data: CertificateDocxData): Promise<void> {
-        // Stub for generateCertificateDocx
-    }
-    
-    public async generateHonorsListDocx(data: HonorsListDocxData): Promise<void> {
-        // Stub for generateHonorsListDocx
-    }
-
-    public async generateSF2Docx(students: Student[], attendance: Attendance[], settings: SchoolSettings, currentDate: Date): Promise<void> {
-        // Stub for generateSF2Docx
-    }
-
-    public async generatePickedStudentsDocx(data: PickedStudentsDocxData): Promise<void> {
-        // Stub for generatePickedStudentsDocx
-    }
-
-    public async generateGroupsDocx(data: GroupsDocxData): Promise<void> {
-        // Stub for generateGroupsDocx
-    }
-
-    public async generateStudentProfileDocx(data: StudentProfileDocxData): Promise<void> {
-        // Stub for generateStudentProfileDocx
-    }
-
 }
 
 export const docxService = new DocxService();
