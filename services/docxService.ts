@@ -324,67 +324,100 @@ class DocxService {
                 sections.push(new Paragraph({ children: [new PageBreak()] }));
             }
 
-            // --- HEADER STRUCTURE ---
+            // --- HEADER ---
             
-            const secondLogoRun = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60) || new TextRun("");
-            const schoolLogoRun = this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 60, 60) || new TextRun("");
+            // Logos
+            const secondLogoRun = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 50, 50) || new TextRun("");
+            const schoolLogoRun = this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 50, 50) || new TextRun("");
 
-            // Top Table: Logos | Title | Info Box
-            const topHeaderRow = new TableRow({
-                children: [
-                    // Left: Logos (Both images here as per user request/image showing DepEd + Other Logo on left)
-                    new TableCell({
-                        width: { size: 20, type: WidthType.PERCENTAGE },
+            // Top Table (Logos | Title | Info)
+            const topHeaderTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({
                         children: [
-                            new Paragraph({
+                            // Col 1: Logos
+                            new TableCell({
+                                width: { size: 15, type: WidthType.PERCENTAGE },
                                 children: [
-                                    secondLogoRun,
-                                    new TextRun("  "),
-                                    schoolLogoRun,
+                                    new Paragraph({
+                                        children: [secondLogoRun, new TextRun("  "), schoolLogoRun],
+                                        alignment: AlignmentType.CENTER,
+                                    })
                                 ],
-                                alignment: AlignmentType.LEFT,
+                                borders: { 
+                                    top: { style: BorderStyle.SINGLE, size: 4 }, 
+                                    bottom: { style: BorderStyle.SINGLE, size: 4 }, 
+                                    left: { style: BorderStyle.SINGLE, size: 4 }, 
+                                    right: { style: BorderStyle.NONE } 
+                                },
+                                verticalAlign: VerticalAlign.CENTER,
+                            }),
+                            // Col 2: Dynamic Learning Program
+                            new TableCell({
+                                width: { size: 50, type: WidthType.PERCENTAGE },
+                                children: [
+                                    new Paragraph({
+                                        children: [new TextRun({ text: "Dynamic Learning Program", font: baseFont, size: 28, bold: true })],
+                                        alignment: AlignmentType.CENTER,
+                                    })
+                                ],
+                                borders: { 
+                                    top: { style: BorderStyle.SINGLE, size: 4 }, 
+                                    bottom: { style: BorderStyle.SINGLE, size: 4 }, 
+                                    left: { style: BorderStyle.NONE }, 
+                                    right: { style: BorderStyle.NONE } 
+                                },
+                                verticalAlign: VerticalAlign.CENTER,
+                            }),
+                            // Col 3: Info Box (Nested Table)
+                            new TableCell({
+                                width: { size: 35, type: WidthType.PERCENTAGE },
+                                children: [
+                                    new Table({
+                                        width: { size: 100, type: WidthType.PERCENTAGE },
+                                        rows: [
+                                            new TableRow({
+                                                children: [
+                                                    new TableCell({
+                                                        children: [new Paragraph({ children: [new TextRun({ text: `S.Y. ${this.safeString(settings.schoolYear)}`, ...headerFont })], alignment: AlignmentType.CENTER })],
+                                                        borders: { bottom: { style: BorderStyle.SINGLE, size: 4 }, top: { style: BorderStyle.NONE }, left: { style: BorderStyle.SINGLE, size: 4 }, right: { style: BorderStyle.NONE } }
+                                                    })
+                                                ]
+                                            }),
+                                            new TableRow({
+                                                children: [
+                                                    new TableCell({
+                                                        children: [new Paragraph({ children: [new TextRun({ text: "Subject: ", ...headerFont }), new TextRun({ text: this.safeString(lasForm.subject), ...fieldFont })], alignment: AlignmentType.LEFT })],
+                                                        borders: { bottom: { style: BorderStyle.SINGLE, size: 4 }, top: { style: BorderStyle.NONE }, left: { style: BorderStyle.SINGLE, size: 4 }, right: { style: BorderStyle.NONE } }
+                                                    })
+                                                ]
+                                            }),
+                                            new TableRow({
+                                                children: [
+                                                    new TableCell({
+                                                        children: [new Paragraph({ children: [new TextRun({ text: "Q1 - LAS - _________", ...headerFont })], alignment: AlignmentType.CENTER })],
+                                                        borders: { bottom: { style: BorderStyle.NONE }, top: { style: BorderStyle.NONE }, left: { style: BorderStyle.SINGLE, size: 4 }, right: { style: BorderStyle.NONE } }
+                                                    })
+                                                ]
+                                            }),
+                                        ]
+                                    })
+                                ],
+                                borders: { 
+                                    top: { style: BorderStyle.SINGLE, size: 4 }, 
+                                    bottom: { style: BorderStyle.SINGLE, size: 4 }, 
+                                    left: { style: BorderStyle.NONE }, 
+                                    right: { style: BorderStyle.SINGLE, size: 4 } 
+                                },
+                                margins: { top: 0, bottom: 0, left: 0, right: 0 }
                             })
-                        ],
-                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
-                    }),
-                    // Center: Dynamic Learning Program
-                    new TableCell({
-                        width: { size: 50, type: WidthType.PERCENTAGE },
-                        verticalAlign: VerticalAlign.CENTER,
-                        children: [
-                            new Paragraph({
-                                children: [new TextRun({ text: "Dynamic Learning Program", font: baseFont, size: 28, bold: true })],
-                                alignment: AlignmentType.CENTER,
-                            })
-                        ],
-                        borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } }
-                    }),
-                    // Right: Info Box (SY, Subject, LAS No.)
-                    new TableCell({
-                        width: { size: 30, type: WidthType.PERCENTAGE },
-                        children: [
-                            new Table({
-                                width: { size: 100, type: WidthType.PERCENTAGE },
-                                rows: [
-                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `S.Y. ${this.safeString(settings.schoolYear)}`, ...headerFont })], alignment: AlignmentType.CENTER })], borders: { bottom: { style: BorderStyle.SINGLE, size: 6 }, top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })] }),
-                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Subject: ", ...headerFont }), new TextRun({ text: this.safeString(lasForm.subject), ...fieldFont })] })], borders: { bottom: { style: BorderStyle.SINGLE, size: 6 }, top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })] }),
-                                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Q1 - LAS - _________", ...headerFont })] })], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })] }),
-                                ]
-                            })
-                        ],
-                        borders: { top: { style: BorderStyle.SINGLE }, bottom: { style: BorderStyle.SINGLE }, left: { style: BorderStyle.SINGLE }, right: { style: BorderStyle.SINGLE } }
+                        ]
                     })
                 ]
             });
+            sections.push(topHeaderTable);
 
-            const headerTable = new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                rows: [topHeaderRow],
-                borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } }
-            });
-
-            sections.push(headerTable);
-            
             // Title
             sections.push(new Paragraph({
                 children: [new TextRun({ text: "LEARNING ACTIVITY SHEET", ...titleFont })],
@@ -392,71 +425,83 @@ class DocxService {
                 spacing: { before: 120, after: 120 }
             }));
 
-            // Student Info Grid
+            // Student Info Table
             const studentInfoTable = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
                     new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name: _______________________________________", ...fieldFont })] })], width: { size: 70, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score: ________", ...fieldFont })] })], width: { size: 30, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name:", ...headerFont })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ text: "", ...fieldFont })], width: { size: 60, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score:", ...headerFont })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ text: "", ...fieldFont })], width: { size: 20, type: WidthType.PERCENTAGE } }),
                         ]
                     }),
                     new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `Grade & Section: ${this.safeString(lasForm.gradeLevel)} - _______________`, ...fieldFont })] })], width: { size: 70, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date: ________", ...fieldFont })] })], width: { size: 30, type: WidthType.PERCENTAGE }, margins: { top: 100, bottom: 100, left: 100, right: 100 } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Grade & Section:", ...headerFont })] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ text: this.safeString(lasForm.gradeLevel), ...fieldFont })], width: { size: 50, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date:", ...headerFont })] })], width: { size: 10, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ text: "", ...fieldFont })], width: { size: 20, type: WidthType.PERCENTAGE } }),
                         ]
                     })
                 ]
             });
             sections.push(studentInfoTable);
 
-            // Type of Activity
-            const cb = (label: string) => {
-                const isChecked = this.safeString(lasForm.activityType).toLowerCase().includes(label.toLowerCase().split(':')[0].split(' ')[0]); // Improved matching
+            // Activity Type Table
+            const check = (label: string) => {
+                const isChecked = this.safeString(lasForm.activityType).toLowerCase().includes(label.toLowerCase().split(':')[0].split(' ')[0]);
                 return isChecked ? `\u2611 ${label}` : `\u2610 ${label}`;
             };
 
             const activityTypeTable = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
-                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Type of Activity: (Check or choose from below.)", ...headerFont })] })], columnSpan: 4, borders: { bottom: { style: BorderStyle.NONE } } })] }),
                     new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph({ text: cb("Concept Notes"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Performance Task"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Formal Theme"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Others: ________"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE } } }),
+                            new TableCell({ 
+                                children: [new Paragraph({ children: [new TextRun({ text: "Type of Activity: (Check or choose from below.)", ...headerFont, italics: true })] })], 
+                                columnSpan: 4,
+                                borders: { bottom: { style: BorderStyle.NONE, size: 0 } }
+                            })
                         ]
                     }),
                     new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph({ text: cb("Skills: Exercise / Drill"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Illustration"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: cb("Informal Theme"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }),
-                            new TableCell({ children: [new Paragraph({ text: "", ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE } } }),
+                            new TableCell({ children: [new Paragraph({ text: check("Concept Notes"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
+                            new TableCell({ children: [new Paragraph({ text: check("Performance Task"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
+                            new TableCell({ children: [new Paragraph({ text: check("Formal Theme"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
+                            new TableCell({ children: [new Paragraph({ text: check("Others:"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0 }, bottom: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 } } }),
+                        ]
+                    }),
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph({ text: check("Skills: Exercise / Drill"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
+                            new TableCell({ children: [new Paragraph({ text: check("Illustration"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
+                            new TableCell({ children: [new Paragraph({ text: check("Informal Theme"), ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 }, right: { style: BorderStyle.NONE, size: 0 } } }),
+                            new TableCell({ children: [new Paragraph({ text: "____________________", ...fieldFont })], width: { size: 25, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE, size: 0 }, left: { style: BorderStyle.NONE, size: 0 } } }),
                         ]
                     })
                 ]
             });
             sections.push(activityTypeTable);
 
-            // Activity Details Table
+            // Details Table (Title, Target, Ref)
             const detailsTable = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
-                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Activity Title: ", ...headerFont }), new TextRun({ text: this.safeString(dayData.activityTitle), ...fieldFont })] })] })] }),
-                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Learning Target: ", ...headerFont }), new TextRun({ text: this.safeString(dayData.learningTarget), ...fieldFont })] })] })] }),
-                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "References: ", ...headerFont }), new TextRun({ text: "(Author, Title, Pages) " + this.safeString(dayData.references), ...fieldFont })] })] })] }),
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Activity Title: ", ...headerFont })] })], width: { size: 25, type: WidthType.PERCENTAGE } }), new TableCell({ children: [new Paragraph({ text: this.safeString(dayData.activityTitle), ...fieldFont })], width: { size: 75, type: WidthType.PERCENTAGE } })] }),
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Learning Target: ", ...headerFont })] })], width: { size: 25, type: WidthType.PERCENTAGE } }), new TableCell({ children: [new Paragraph({ text: this.safeString(dayData.learningTarget), ...fieldFont })], width: { size: 75, type: WidthType.PERCENTAGE } })] }),
+                    new TableRow({ children: [new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "References: ", ...headerFont }), new TextRun({ text: "(Author, Title, Pages)", size: 16, italics: true })] })], width: { size: 25, type: WidthType.PERCENTAGE } }), new TableCell({ children: [new Paragraph({ text: this.safeString(dayData.references), ...fieldFont })], width: { size: 75, type: WidthType.PERCENTAGE } })] }),
                 ]
             });
             sections.push(detailsTable);
             
-            // Spacer
+            // Content Spacer
             sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
 
-            // --- CONTENT ---
+            // --- CONTENT BODY ---
             if (dayData.conceptNotes && Array.isArray(dayData.conceptNotes)) {
                 dayData.conceptNotes.forEach(note => {
                     sections.push(new Paragraph({
@@ -476,8 +521,10 @@ class DocxService {
 
                     const instructions = this.safeString(activity.instructions);
                     
+                    // Handle "Matching" type activities if they use '||' separator
                     if (instructions.includes('||')) {
                         const lines = instructions.split('\n');
+                        // separate intro lines from table lines
                         const directionsLines = lines.filter(l => !l.includes('||'));
                         const tableLines = lines.filter(l => l.includes('||'));
 
@@ -504,16 +551,19 @@ class DocxService {
                                 });
                             });
 
+                            // Add Header Row for Table
                             tableRows.unshift(new TableRow({
                                 tableHeader: true,
                                 children: [
                                     new TableCell({ 
-                                        children: [new Paragraph({ children: [new TextRun({ text: "Column A (Situation)", ...headerFont })] })], 
-                                        width: { size: 50, type: WidthType.PERCENTAGE }
+                                        children: [new Paragraph({ children: [new TextRun({ text: "Column A", ...headerFont })] })], 
+                                        width: { size: 50, type: WidthType.PERCENTAGE },
+                                        shading: { fill: "FFFFFF" }
                                     }),
                                     new TableCell({ 
-                                        children: [new Paragraph({ children: [new TextRun({ text: "Column B (Term)", ...headerFont })] })], 
-                                        width: { size: 50, type: WidthType.PERCENTAGE }
+                                        children: [new Paragraph({ children: [new TextRun({ text: "Column B", ...headerFont })] })], 
+                                        width: { size: 50, type: WidthType.PERCENTAGE },
+                                        shading: { fill: "FFFFFF" }
                                     }),
                                 ]
                             }));
@@ -571,7 +621,7 @@ class DocxService {
             }));
 
         });
-
+        
         const doc = new Document({
             numbering: {
                 config: [
@@ -603,8 +653,8 @@ class DocxService {
             sections: [{
                 properties: {
                     page: {
-                        size: { width: 12240, height: 18720 }, // 8.5 x 13 Long Bond Paper in Portrait
-                        margin: { top: 720, right: 720, bottom: 720, left: 720 }, // 0.5 inch margins
+                        size: { width: 12240, height: 18720 }, // 8.5 x 13 Long Bond
+                        margin: { top: 720, right: 720, bottom: 720, left: 720 }, // 0.5 inch
                     }
                 },
                 children: sections
