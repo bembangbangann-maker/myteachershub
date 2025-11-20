@@ -250,10 +250,11 @@ class DocxService {
     private parseLasMarkdown(markdownText: string): Paragraph[] {
         const text = this.safeString(markdownText);
         // Standardize Font: Century Gothic, Size 14 (28 half-points)
-        const fontOptions = { font: "Century Gothic", size: 28 };
+        const baseFont = "Century Gothic";
+        const fontSize = 28; // 14pt
+        const fontOptions = { font: baseFont, size: fontSize };
 
         // CRITICAL FIX: Prevent "Word experienced an error" by ensuring we never return an empty array of paragraphs.
-        // Empty table cells corrupt the document structure.
         if (!text || text.trim() === '') {
             return [new Paragraph({ children: [new TextRun({ text: " ", ...fontOptions })], spacing: { after: 0 } })];
         }
@@ -284,8 +285,8 @@ class DocxService {
                 }
             }
             
-            // Check for bullet points
-            const isListItem = /^\s*•\s+/.test(line.trim());
+            // Check for bullet points or numbered lists visually
+            const isListItem = /^\s*•\s+/.test(line.trim()) || /^\d+\./.test(line.trim());
             const isSubListItem = /^\s*o\s+/.test(line.trim());
 
             paragraphs.push(new Paragraph({
@@ -745,107 +746,104 @@ class DocxService {
         settings: SchoolSettings
     ): Promise<void> {
         const sections: (Paragraph | Table | PageBreak)[] = [];
-        
-        // Enforce Century Gothic Font Size 14 (28 half-points)
         const baseFont = "Century Gothic";
-        const fieldFont = { font: baseFont, size: 28 }; // 14pt = 28 half-points
+        const fontSize = 28; // 14pt
+        const fieldFont = { font: baseFont, size: fontSize };
+        const headerFont = { font: baseFont, size: fontSize, bold: true };
 
-        // Safety check: Ensure days exist
         const days = lasContent?.days || [];
 
         days.forEach((dayData, index) => {
             if (index > 0) {
-                sections.push(new PageBreak());
+                // Horizontal line separator between days (Screenshot 2)
+                sections.push(new Paragraph({
+                    border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
+                    spacing: { before: 240, after: 240 }
+                }));
             }
 
-            // --- Page Header Structure ---
-            
-            // 1. Day Title (Bold, Heading 1 style, ALL CAPS)
+            // 1. Day Title
             sections.push(new Paragraph({
-                text: this.safeString(dayData.dayTitle).toUpperCase(), 
+                children: [new TextRun({ text: this.safeString(dayData.dayTitle), ...headerFont })],
                 heading: HeadingLevel.HEADING_1,
-                run: { font: baseFont, size: 28, bold: true }, // 14pt Bold
+                spacing: { after: 120 }
+            }));
+
+            // 2. DepEd Header
+            sections.push(new Paragraph({
+                children: [new TextRun({ text: "DepED | Dynamic Learning Program | BAGONG PILIPINAS | LEARNING ACTIVITY SHEET", font: baseFont, size: fontSize })],
                 spacing: { after: 240 }
             }));
 
-            // 2. DepEd Header Line
-            sections.push(new Paragraph({
-                text: "DepED | Dynamic Learning Program | BAGONG PILIPINAS | LEARNING ACTIVITY SHEET",
-                alignment: AlignmentType.LEFT, 
-                run: { font: baseFont, size: 28, bold: true }, // 14pt Bold
-                spacing: { after: 240 },
-                border: { bottom: { color: "auto", space: 1, value: "single", size: 6 } },
-            }));
-
-            // 3. Basic Info Fields
-            
+            // 3. Info Fields
             // Subject
             sections.push(new Paragraph({
                 children: [
-                    new TextRun({ text: "Subject: ", bold: true, ...fieldFont }),
+                    new TextRun({ text: "Subject: ", ...headerFont }),
                     new TextRun({ text: this.safeString(lasForm.subject), ...fieldFont })
                 ],
-                spacing: { before: 120 }
+                spacing: { after: 60 }
             }));
-
+            
             // Grade & Section
             sections.push(new Paragraph({
                 children: [
-                    new TextRun({ text: "Grade & Section: ", bold: true, ...fieldFont }),
-                    new TextRun({ text: "________________________________________", ...fieldFont })
+                    new TextRun({ text: "Grade & Section: ", ...headerFont }),
+                    new TextRun({ text: "________________", ...fieldFont })
                 ],
-                spacing: { before: 60 }
+                spacing: { after: 60 }
             }));
 
             // Name, Score, Date line
+             // Screenshot 1 shows Name, Score, Date on one line.
             const infoRow = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }, insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE } },
                 rows: [
                     new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name: ", bold: true, ...fieldFont }), new TextRun({ text: "__________________________________", ...fieldFont })] })], width: { size: 50, type: WidthType.PERCENTAGE } }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score: ", bold: true, ...fieldFont }), new TextRun({ text: "_______", ...fieldFont })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
-                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date: ", bold: true, ...fieldFont }), new TextRun({ text: "_______", ...fieldFont })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Name: ", ...headerFont }), new TextRun({ text: "__________________________________", ...fieldFont })] })], width: { size: 55, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Score: ", ...headerFont }), new TextRun({ text: "________", ...fieldFont })] })], width: { size: 20, type: WidthType.PERCENTAGE } }),
+                            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date: ", ...headerFont }), new TextRun({ text: "________", ...fieldFont })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
                         ]
                     })
                 ]
             });
             sections.push(infoRow);
-            sections.push(new Paragraph({ text: "", spacing: { after: 60 } }));
+            sections.push(new Paragraph({ text: "", spacing: { after: 60 } })); // Spacer
 
             // Activity Title
             sections.push(new Paragraph({
                 children: [
-                    new TextRun({ text: "Activity Title: ", bold: true, ...fieldFont }),
+                    new TextRun({ text: "Activity Title: ", ...headerFont }),
                     new TextRun({ text: this.safeString(dayData.activityTitle), ...fieldFont })
-                ]
+                ],
+                spacing: { after: 60 }
             }));
 
             // Learning Target
             sections.push(new Paragraph({
                 children: [
-                    new TextRun({ text: "Learning Target: ", bold: true, ...fieldFont }),
+                    new TextRun({ text: "Learning Target: ", ...headerFont }),
                     new TextRun({ text: this.safeString(dayData.learningTarget), ...fieldFont })
-                ]
+                ],
+                spacing: { after: 60 }
             }));
 
             // Reference
             sections.push(new Paragraph({
                 children: [
-                    new TextRun({ text: "Reference: ", bold: true, ...fieldFont }),
-                    new TextRun({ text: this.safeString(dayData.references) || "____________________", ...fieldFont })
+                    new TextRun({ text: "Reference:", ...headerFont }),
+                    new TextRun({ text: this.safeString(dayData.references) ? ` ${this.safeString(dayData.references)}` : "", ...fieldFont })
                 ],
-                spacing: { after: 240 } 
+                spacing: { after: 240 }
             }));
 
             // 4. Concept Notes
             if (dayData.conceptNotes && Array.isArray(dayData.conceptNotes)) {
                 dayData.conceptNotes.forEach(note => {
                     sections.push(new Paragraph({
-                        text: this.safeString(note.title).toUpperCase(),
-                        heading: HeadingLevel.HEADING_2,
-                        run: { font: baseFont, size: 28, bold: true },
+                        children: [new TextRun({ text: this.safeString(note.title).toUpperCase(), ...headerFont })],
                         spacing: { before: 120, after: 120 }
                     }));
                     sections.push(...this.parseLasMarkdown(this.safeString(note.content)));
@@ -853,20 +851,18 @@ class DocxService {
             }
 
             // 5. Activities
-            if (dayData.activities && Array.isArray(dayData.activities)) {
+             if (dayData.activities && Array.isArray(dayData.activities)) {
                 dayData.activities.forEach(activity => {
                     // Activity Header
                     sections.push(new Paragraph({
-                        text: this.safeString(activity.title).toUpperCase(),
-                        heading: HeadingLevel.HEADING_3,
-                        run: { font: baseFont, size: 28, bold: true }, 
+                        children: [new TextRun({ text: this.safeString(activity.title).toUpperCase(), ...headerFont })],
                         spacing: { before: 240, after: 120 }
                     }));
 
                     const instructions = this.safeString(activity.instructions);
                     
-                    // Check for Table logic (using || separator) to generate "Match the column" tables
                     if (instructions.includes('||')) {
+                        // Table Match Logic
                         const lines = instructions.split('\n');
                         const directionsLines = lines.filter(l => !l.includes('||'));
                         const tableLines = lines.filter(l => l.includes('||'));
@@ -874,7 +870,7 @@ class DocxService {
                         if (directionsLines.length > 0) {
                             sections.push(new Paragraph({
                                 children: [
-                                    new TextRun({ text: "Directions: ", bold: true, ...fieldFont }),
+                                    new TextRun({ text: "Directions: ", ...headerFont }),
                                     new TextRun({ text: directionsLines.join(' '), ...fieldFont })
                                 ],
                                 spacing: { after: 120 }
@@ -882,14 +878,10 @@ class DocxService {
                         }
 
                         if (tableLines.length > 0) {
-                            // Create Table for matching activities
-                            const tableRows = tableLines.map(line => {
+                             const tableRows = tableLines.map(line => {
                                 const parts = line.split('||');
-                                // Ensure parts are safe strings
                                 const col1 = this.safeString(parts[0] || "").trim();
                                 const col2 = this.safeString(parts[1] || "").trim();
-                                
-                                // IMPORTANT: parseLasMarkdown now guarantees to return at least one paragraph
                                 return new TableRow({
                                     children: [
                                         new TableCell({ children: this.parseLasMarkdown(col1), width: { size: 50, type: WidthType.PERCENTAGE }, padding: { top: 100, bottom: 100, left: 100, right: 100 } }),
@@ -898,35 +890,30 @@ class DocxService {
                                 });
                             });
 
-                            // Add header row for the matching table
                             tableRows.unshift(new TableRow({
                                 tableHeader: true,
                                 children: [
-                                    new TableCell({ children: [new Paragraph({ text: "Column A", bold: true, alignment: AlignmentType.CENTER, run: { font: baseFont, size: 28 } })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
-                                    new TableCell({ children: [new Paragraph({ text: "Column B", bold: true, alignment: AlignmentType.CENTER, run: { font: baseFont, size: 28 } })], shading: { fill: "EFEFEF", type: ShadingType.CLEAR, color: "auto" } }),
+                                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Column A (Situation)", ...headerFont })] })], shading: { fill: "FFFFFF", type: ShadingType.CLEAR, color: "auto" } }),
+                                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Column B (Term)", ...headerFont })] })], shading: { fill: "FFFFFF", type: ShadingType.CLEAR, color: "auto" } }),
                                 ]
                             }));
                             
-                            if (tableRows.length > 0) {
-                                sections.push(new Table({
-                                    rows: tableRows,
-                                    width: { size: 100, type: WidthType.PERCENTAGE },
-                                }));
-                                sections.push(new Paragraph({ children: [], spacing: { after: 120 } })); // Spacer using empty children array is risky for text runs, but OK for paragraph spacing if handled
-                            }
+                            sections.push(new Table({
+                                rows: tableRows,
+                                width: { size: 100, type: WidthType.PERCENTAGE },
+                            }));
+                            sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
                         }
-
                     } else {
-                        // Normal text instructions
-                        sections.push(...this.parseLasMarkdown(instructions));
+                         sections.push(...this.parseLasMarkdown(instructions));
                     }
 
                     // Activity Questions
-                    if (activity.questions && activity.questions.length > 0) {
+                     if (activity.questions && activity.questions.length > 0) {
                         activity.questions.forEach((q, i) => {
                             sections.push(new Paragraph({
                                 children: [
-                                    new TextRun({ text: `${i + 1}. `, bold: true, ...fieldFont }),
+                                    new TextRun({ text: `${i + 1}. `, ...headerFont }),
                                     new TextRun({ text: this.safeString(q.questionText), ...fieldFont })
                                 ],
                                 spacing: { before: 60 }
@@ -940,26 +927,24 @@ class DocxService {
                                     }));
                                 });
                             } else {
-                                // Blank line for answer if no options
-                                sections.push(new Paragraph({ text: "______________________________________________________", indentation: { left: 720 }, run: fieldFont }));
+                                sections.push(new Paragraph({ text: "________________________________________", indentation: { left: 720 }, run: fieldFont }));
                             }
                         });
                     }
                 });
-            }
+             }
 
-            // 6. Reflection
-            sections.push(new Paragraph({
-                text: "REFLECTION",
-                heading: HeadingLevel.HEADING_3,
-                run: { font: baseFont, size: 28, bold: true }, 
+             // 6. Reflection
+             sections.push(new Paragraph({
+                children: [new TextRun({ text: "REFLECTION", ...headerFont })],
                 spacing: { before: 240, after: 120 }
             }));
             sections.push(new Paragraph({
                 text: this.safeString(dayData.reflection),
                 run: fieldFont
             }));
-             sections.push(new Paragraph({
+            // Add lines for writing
+            sections.push(new Paragraph({
                 text: "________________________________________________________________________________________________________________________________",
                 spacing: { before: 200 },
                 run: fieldFont
@@ -969,6 +954,7 @@ class DocxService {
                 spacing: { before: 200 },
                 run: fieldFont
             }));
+
         });
 
         const doc = new Document({
