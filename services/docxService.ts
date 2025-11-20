@@ -181,7 +181,7 @@ class DocxService {
                         height: height,
                     },
                     ...options
-                });
+                } as any);
             }
         } catch (e) {
             console.error("Failed to create ImageRun. The image data might be corrupt.", e);
@@ -251,7 +251,7 @@ class DocxService {
     private parseLasMarkdown(markdownText: string): Paragraph[] {
         const text = this.safeString(markdownText);
         const baseFont = "Century Gothic";
-        const fontSize = 28; // 14pt
+        const fontSize = 24; // 12pt
         const fontOptions = { font: baseFont, size: fontSize };
 
         if (!text || text.trim() === '') {
@@ -306,7 +306,7 @@ class DocxService {
         const sections: (Paragraph | Table | Paragraph)[] = [];
         const baseFont = "Century Gothic";
         const headerFontSize = 22; // 11pt
-        const contentFontSize = 28; // 14pt
+        const contentFontSize = 24; // 12pt
         
         const headerFont = { font: baseFont, size: headerFontSize, bold: true };
         const fieldFont = { font: baseFont, size: headerFontSize };
@@ -324,15 +324,15 @@ class DocxService {
                 sections.push(new Paragraph({ children: [new PageBreak()] }));
             }
 
-            // --- HEADER TABLE STRUCTURE ---
+            // --- HEADER STRUCTURE ---
             
             const secondLogoRun = this.createDocxImage(this.parseDataUrl(settings.secondLogo), 60, 60) || new TextRun("");
             const schoolLogoRun = this.createDocxImage(this.parseDataUrl(settings.schoolLogo), 60, 60) || new TextRun("");
 
-            // 1. TOP ROW: Logo | Center Text | Right Info Box
+            // Top Table: Logos | Title | Info Box
             const topHeaderRow = new TableRow({
                 children: [
-                    // Left: Logos
+                    // Left: Logos (Both images here as per user request/image showing DepEd + Other Logo on left)
                     new TableCell({
                         width: { size: 20, type: WidthType.PERCENTAGE },
                         children: [
@@ -349,7 +349,7 @@ class DocxService {
                     }),
                     // Center: Dynamic Learning Program
                     new TableCell({
-                        width: { size: 40, type: WidthType.PERCENTAGE },
+                        width: { size: 50, type: WidthType.PERCENTAGE },
                         verticalAlign: VerticalAlign.CENTER,
                         children: [
                             new Paragraph({
@@ -361,7 +361,7 @@ class DocxService {
                     }),
                     // Right: Info Box (SY, Subject, LAS No.)
                     new TableCell({
-                        width: { size: 40, type: WidthType.PERCENTAGE },
+                        width: { size: 30, type: WidthType.PERCENTAGE },
                         children: [
                             new Table({
                                 width: { size: 100, type: WidthType.PERCENTAGE },
@@ -385,14 +385,14 @@ class DocxService {
 
             sections.push(headerTable);
             
-            // 2. Title
+            // Title
             sections.push(new Paragraph({
                 children: [new TextRun({ text: "LEARNING ACTIVITY SHEET", ...titleFont })],
                 alignment: AlignmentType.CENTER,
                 spacing: { before: 120, after: 120 }
             }));
 
-            // 3. Student Info Grid
+            // Student Info Grid
             const studentInfoTable = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
@@ -412,9 +412,9 @@ class DocxService {
             });
             sections.push(studentInfoTable);
 
-            // 4. Type of Activity
+            // Type of Activity
             const cb = (label: string) => {
-                const isChecked = this.safeString(lasForm.activityType).toLowerCase().includes(label.toLowerCase().split(':')[0]);
+                const isChecked = this.safeString(lasForm.activityType).toLowerCase().includes(label.toLowerCase().split(':')[0].split(' ')[0]); // Improved matching
                 return isChecked ? `\u2611 ${label}` : `\u2610 ${label}`;
             };
 
@@ -442,7 +442,7 @@ class DocxService {
             });
             sections.push(activityTypeTable);
 
-            // 5. Details Table (Title, Target, Ref)
+            // Activity Details Table
             const detailsTable = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
@@ -584,9 +584,9 @@ class DocxService {
                             style: {
                                 paragraph: {
                                     indent: { left: 720, hanging: 360 },
-                                }
-                            },
-                            run: { font: "Century Gothic", size: 28 }
+                                },
+                                run: { font: "Century Gothic", size: 28 }
+                            }
                         }],
                     },
                 ],
@@ -823,9 +823,9 @@ class DocxService {
                                 style: {
                                     paragraph: {
                                         indent: { left: 720, hanging: 360 },
-                                    }
+                                    },
+                                    run: { font: "Times New Roman", size: 22 },
                                 },
-                                run: { font: "Times New Roman", size: 22 },
                             },
                         ],
                     },
@@ -1227,7 +1227,7 @@ class DocxService {
     }
     
     public async generateStudentProfileDocx(data: StudentProfileDocxData): Promise<void> {
-         const sections: (Paragraph | Table | ImageRun)[] = [];
+         const sections: (Paragraph | Table)[] = []; // Removed ImageRun
          // Header
          sections.push(new Paragraph({ text: data.settings.schoolName.toUpperCase(), heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }));
          sections.push(new Paragraph({ text: "STUDENT PROFILE", heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER }));
