@@ -111,48 +111,64 @@ export const generateDllContent = async (options: any): Promise<DllContent> => {
 };
 
 // UPDATED LAS GENERATOR FUNCTION
-export const generateLearningActivitySheet = async (options: { subject: string; gradeLevel: string; learningCompetency: string; lessonObjective: string; activityType: string; language: 'English' | 'Filipino' }): Promise<LearningActivitySheet> => {
-    const { subject, gradeLevel, learningCompetency, lessonObjective, activityType, language } = options;
+export const generateLearningActivitySheet = async (options: { subject: string; gradeLevel: string; learningCompetency: string; weeklyPlanContent: string; language: 'English' | 'Filipino' }): Promise<LearningActivitySheet> => {
+    const { subject, gradeLevel, learningCompetency, weeklyPlanContent, language } = options;
     const model = "gemini-3-pro-preview"; // Use stronger model for complex structure
     const prompt = `
-        You are an expert curriculum designer for the Department of Education in the Philippines. Create a comprehensive, 5-day learning packet following the DLP-style Learning Activity Sheet (LAS) format. 
-        The entire week must focus on scaffolding the single provided learning competency, with each day building upon the previous one.
+        You are an expert teacher and curriculum designer specializing in the **Dynamic Learning Program (DLP)** format.
+        
+        **Goal:** Generate a complete, 5-day Learning Activity Sheet (LAS) packet.
+        
+        **Context:**
+        - Subject: ${subject}
+        - Grade Level: ${gradeLevel}
+        - Main Competency: ${learningCompetency}
+        - Language: ${language}
+        
+        **Weekly Content Source (Exemplar):**
+        ${weeklyPlanContent ? `Use this text to derive the lessons:\n"${weeklyPlanContent}"` : "No specific exemplar provided. Create a cohesive weekly plan based on the competency."}
 
-        **Main Learning Competency:** ${learningCompetency}
-        **Main Lesson Objective:** ${lessonObjective}
-        **Activity Focus for the week:** ${activityType}
-        **Language:** ${language}
+        **Structure Requirements (Strict adherence required):**
+        The output must contain an array "days" with exactly 5 items.
 
-        **CRITICAL INSTRUCTIONS FOR EACH OF THE 5 DAYS:**
-        1.  **days Array:** The output JSON must contain a root key "days" which is an array of exactly 5 objects.
-        2.  **dayTitle:** Create a clear title (e.g., "Day 1: Understanding Bias").
-        3.  **activityTitle:** Specific title for the activity sheet.
-        4.  **learningTarget:** Specific sub-objective for the day.
-        5.  **references:** Suggest learning materials.
-        6.  **conceptNotes:** An ARRAY of objects, each with "title" and "content". "title" must be "CONCEPT NOTES". Content uses markdown (**bold**, *italics*) for emphasis.
-        7.  **activities:** An ARRAY of objects. "title" must start with "ACTIVITY:". "instructions" contains directions. 
-            - **IMPORTANT:** For matching activities or tables, separate columns with " || " in the instructions string (e.g., "Item 1 || Answer A").
-        8.  **reflection:** A single thought-provoking question string.
+        **For Day 1, Day 2, Day 3, and Day 4:**
+        1.  **dayTitle:** e.g., "Day 1: [Topic for the day]"
+        2.  **activityTitle:** Specific title aligned with the competency.
+        3.  **learningTarget:** Specific daily objective.
+        4.  **conceptNotes:** MUST be "concise, simple, and easy to copy by hand". 
+            - Maximum 2-3 short paragraphs or bullet points. 
+            - Include 1-2 simple, clear examples.
+            - Tone: Student-friendly.
+        5.  **activities:** Must be parallel to the concept notes.
+            - Title: "ACTIVITY: [NAME]"
+            - Duration: Short (15-20 mins).
+            - Format: For matching or multi-column activities, use " || " to separate columns in the 'instructions' string (e.g., "Item 1 || Answer A").
+        6.  **reflection:** One thought-provoking question integrating social-emotional learning (SEL).
+
+        **For Day 5:**
+        - **dayTitle:** "Day 5: Performance Task"
+        - **activityTitle:** "Performance Task: [Name]"
+        - **conceptNotes:** Brief instructions or recap.
+        - **activities:** A single, summative performance task covering the week's objectives.
 
         **Output Schema (Strict JSON):**
         {
           "days": [
             {
-              "dayTitle": "Day 1: Title",
-              "activityTitle": "Activity Title",
-              "learningTarget": "Target",
-              "references": "Ref",
-              "conceptNotes": [ { "title": "CONCEPT NOTES", "content": "Content here..." } ],
+              "dayTitle": "string",
+              "activityTitle": "string",
+              "learningTarget": "string",
+              "references": "string",
+              "conceptNotes": [ { "title": "CONCEPT NOTES", "content": "Markdown string..." } ],
               "activities": [ 
                   { 
-                    "title": "ACTIVITY: NAME", 
-                    "instructions": "Instructions here...", 
-                    "questions": [ { "questionText": "Q1", "options": ["A","B"] } ] 
+                    "title": "string", 
+                    "instructions": "string", 
+                    "questions": [ { "questionText": "string", "options": ["string"] } ] 
                   } 
               ],
-              "reflection": "Reflection question..."
+              "reflection": "string"
             }
-            // ... 5 days total
           ]
         }
     `;

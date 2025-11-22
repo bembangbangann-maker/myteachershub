@@ -1,12 +1,13 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { useAppContext } from '../contexts/AppContext';
 import { generateDlpContent, generateQuizContent, generateRubricForActivity, generateDllContent, generateLearningActivitySheet, generateExam } from '../services/geminiService';
 import { DlpContent, GeneratedQuiz, QuizType, DllContent, LearningActivitySheet, ExamObjective, GeneratedExam, GeneratedQuizSection } from '../types';
 import Header from './Header';
-import { SparklesIcon, DownloadIcon, ClipboardCheckIcon, PlusIcon, TrashIcon, RefreshCwIcon } from './icons';
+import { SparklesIcon, DownloadIcon, ClipboardCheckIcon, PlusIcon, TrashIcon, RefreshCwIcon, UploadIcon } from './icons';
 import { docxService } from '../services/docxService';
+import mammoth from 'mammoth';
 
 const TabButton: React.FC<{ label: string, icon: React.ReactNode, isActive: boolean, onClick: () => void }> = ({ label, icon, isActive, onClick }) => (
     <button onClick={onClick} className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border-b-2 ${isActive ? 'border-primary text-primary' : 'border-transparent text-base-content/70 hover:text-base-content'}`}>
@@ -103,11 +104,12 @@ const LessonPlanners: React.FC = () => {
         subject: 'Filipino',
         gradeLevel: '7',
         learningCompetency: '',
-        lessonObjective: '',
+        weeklyPlanContent: '',
         activityType: 'Guided Practice',
         language: 'Filipino',
     });
     const [lasContent, setLasContent] = useState<LearningActivitySheet | null>(null);
+    const lasFileInputRef = useRef<HTMLInputElement>(null);
 
     // Exam State
     const [examObjectives, setExamObjectives] = useState<ExamObjective[]>([{ id: `obj-${Date.now()}`, text: '', days: '' }]);
@@ -177,6 +179,34 @@ const LessonPlanners: React.FC = () => {
     const handleLasFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { id, value } = e.target;
         setLasForm(prev => ({ ...prev, [id]: value }));
+    };
+
+    const handleLasFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        
+        const toastId = toast.loading("Reading file...");
+        try {
+            let text = "";
+            if (file.name.endsWith('.docx')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                text = result.value;
+            } else if (file.name.endsWith('.txt')) {
+                text = await file.text();
+            } else {
+                toast.error("Please upload a .docx or .txt file.", { id: toastId });
+                return;
+            }
+            
+            setLasForm(prev => ({ ...prev, weeklyPlanContent: text }));
+            toast.success("File content loaded!", { id: toastId });
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to read file.", { id: toastId });
+        } finally {
+            event.target.value = '';
+        }
     };
 
     const handleQuizFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -295,20 +325,21 @@ const LessonPlanners: React.FC = () => {
     };
 
     const generateLAS = async () => {
-        if (!lasForm.subject.trim() || !lasForm.learningCompetency.trim() || !lasForm.lessonObjective.trim()) {
-            toast.error("Please fill in the Subject, Learning Competency, and Lesson Objective.");
+        if (!lasForm.subject.trim() || !lasForm.learningCompetency.trim()) {
+            toast.error("Please fill in the Subject and Learning Competency.");
             return;
         }
         setIsLoading(true);
         setLasContent(null);
-        const toastId = toast.loading('Generating Learning Activity Sheet...');
+        const toastId = toast.loading('Generating 5-Day DLP Learning Sheets...');
         try {
             const content = await generateLearningActivitySheet({
                 ...lasForm,
+                weeklyPlanContent: lasForm.weeklyPlanContent,
                 language: lasForm.language as 'English' | 'Filipino',
             });
             setLasContent(content);
-            toast.success('Learning Sheet generated successfully!', { id: toastId });
+            toast.success('Learning Sheets generated successfully!', { id: toastId });
         } catch (error) {
             let message = "An unknown error occurred.";
             if (error instanceof Error) message = error.message;
@@ -467,19 +498,25 @@ const LessonPlanners: React.FC = () => {
 
                          {activeTab === 'las' && (
                             <form onSubmit={(e) => { e.preventDefault(); generateLAS(); }} className="space-y-4">
-                                <h2 className="text-xl font-bold text-base-content mb-2">Activity Sheet Details</h2>
+                                <h2 className="text-xl font-bold text-base-content mb-2">Learning Activity Sheet (LAS)</h2>
                                 <div className="grid grid-cols-2 gap-4">
                                     <InputField id="subject" label="Subject" value={lasForm.subject} onChange={handleLasFormChange} required />
                                     <InputField id="gradeLevel" label="Grade Level" value={lasForm.gradeLevel} onChange={handleLasFormChange} required />
                                 </div>
-                                <TextAreaField id="learningCompetency" label="Learning Competency" value={lasForm.learningCompetency} onChange={handleLasFormChange} required placeholder="e.g., Nasusuri ang mga elementong linggwistiko" />
-                                <TextAreaField id="lessonObjective" label="Lesson Objective" value={lasForm.lessonObjective} onChange={handleLasFormChange} required placeholder="e.g., Makasusulat ng maikling tula..." />
+                                <TextAreaField id="learningCompetency" label="Learning Competency" value={lasForm.learningCompetency} onChange={handleLasFormChange} required placeholder="e.g., EN9G-IIa-19: Use adverbs in narration" />
+                                
+                                {/* Weekly Lesson Context Upload/Paste */}
                                 <div>
-                                    <label htmlFor="activityType" className="block text-sm font-medium text-base-content mb-1">Type of Activity</label>
-                                    <select id="activityType" value={lasForm.activityType} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
-                                        {activityTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                                    </select>
+                                    <label htmlFor="weeklyPlanContent" className="block text-sm font-medium text-base-content mb-1">Weekly Lesson Exemplar / Context (Optional)</label>
+                                    <div className="flex gap-2 mb-2">
+                                        <input type="file" ref={lasFileInputRef} onChange={handleLasFileUpload} className="hidden" accept=".docx,.txt" />
+                                        <button type="button" onClick={() => lasFileInputRef.current?.click()} className="flex items-center gap-2 bg-secondary hover:bg-secondary-focus text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors">
+                                            <UploadIcon className="w-4 h-4" /> Upload .docx/.txt
+                                        </button>
+                                    </div>
+                                    <textarea id="weeklyPlanContent" value={lasForm.weeklyPlanContent} onChange={handleLasFormChange} rows={5} placeholder="Paste your weekly lesson plan or exemplar here. The AI will use this to break down the LAS into 4 days of lessons and 1 performance task." className="w-full bg-base-100 border border-base-300 rounded-md p-2 text-base-content text-sm" />
                                 </div>
+
                                  <div>
                                     <label htmlFor="lasLanguage" className="block text-sm font-medium text-base-content mb-1">Language</label>
                                     <select id="language" value={lasForm.language} onChange={handleLasFormChange} className="w-full bg-base-100 border border-base-300 rounded-md p-2 h-10">
@@ -487,7 +524,7 @@ const LessonPlanners: React.FC = () => {
                                     </select>
                                 </div>
                                 <button type="submit" disabled={isLoading} className="w-full flex items-center justify-center bg-primary hover:bg-primary-focus text-white font-bold py-3 px-4 rounded-lg text-lg mt-4 disabled:opacity-50">
-                                    <SparklesIcon className={`w-6 h-6 mr-3 ${isLoading ? 'animate-spin' : ''}`} /> {isLoading ? 'Generating Sheet...' : 'Generate Activity Sheet'}
+                                    <SparklesIcon className={`w-6 h-6 mr-3 ${isLoading ? 'animate-spin' : ''}`} /> {isLoading ? 'Generating Sheets...' : 'Generate 5-Day LAS Packet'}
                                 </button>
                             </form>
                          )}
